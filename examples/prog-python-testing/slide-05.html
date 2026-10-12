@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  .titulo { font-weight: 700; }
+  .cuerpo { font-weight: 400; }
+  .dato { font-weight: 700; color: var(--acento); }
+  .resaltar { font-weight: 700; }
+  .cita { font-style: italic; }
+  .clave { font-weight: 700; color: #FFB800; }
+</style>
+</head>
+<body>
+  <div class="numero">5/7</div>
+  <div class="slide">
+    <div class="contenido">
+      <div class="titulo">Cómo se prueba</div>
+      <div class="cuerpo">Si no <span class="clave">puedes</span> probarlo en un minuto, el diseño te lo está pidiendo a gritos. Casos felices y caso de error.</div>
+      <div class="componente" data-component="terminal" data-props='{"titulo": "tests · local", "lines": [{"t": "cmd", "v": "pytest -q tests/test_core.py"}, {"t": "out", "v": "..F"}, {"t": "err", "v": "1 falló: entrada vacía sin cubrir"}, {"t": "ok", "v": "arreglá el caso borde, no el test"}]}'></div>
+    </div>
+    <div class="pie">
+      <span class="logo"></span>TechEdu · Testing en Python
+    </div>
+  </div>
+</body>
+</html>

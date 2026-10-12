@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  .titulo { font-weight: 700; }
+  .cuerpo { font-weight: 400; }
+  .dato { font-weight: 700; color: var(--acento); }
+  .resaltar { font-weight: 700; }
+  .cita { font-style: italic; }
+  .clave { font-weight: 700; color: #FFB800; }
+</style>
+</head>
+<body>
+  <div class="numero">3/7</div>
+  <div class="slide">
+    <div class="contenido">
+      <div class="titulo">El patrón en código</div>
+      <div class="cuerpo">Pocas <span class="clave">líneas</span>, una responsabilidad. Código que se lee solo gana siempre al código que presume.</div>
+      <div class="componente" data-component="code" data-props='{"lenguaje": "python", "codigo": "def procesar(datos):\n    limpio = [d for d in datos if d]\n    return sorted(limpio, key=lambda d: d[0])", "notas": "Una función, una responsabilidad."}'></div>
+    </div>
+    <div class="pie">
+      <span class="logo"></span>TechEdu · Testing en Python
+    </div>
+  </div>
+</body>
+</html>
