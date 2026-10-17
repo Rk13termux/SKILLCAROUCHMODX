@@ -400,7 +400,10 @@ __links_fuentes__
     flex: 1;
     min-height: 0;
   }
-  .ajuste { width: 100%; zoom: __contenido_zoom__; /* AJUSTE_ZOOM */ }
+  /* El wrapper del auto-fit reproduce el flex column de .contenido: sin esto,
+     los hijos con align-self:center (.badge, .cta, .ind-swipe, .secundario)
+     quedan pegados a la izquierda. */
+  .ajuste { width: 100%; display: flex; flex-direction: column; zoom: __contenido_zoom__; /* AJUSTE_ZOOM */ }
   .icono-box { display: flex; justify-content: center; margin-bottom: __icon_margin__px; }
   .icono-box .icono-svg {
     width: __icon_size__px;

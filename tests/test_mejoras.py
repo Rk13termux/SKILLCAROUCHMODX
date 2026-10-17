@@ -160,3 +160,19 @@ def test_copy_redes_incluye_plan_publicacion(tmp_path):
     md = (tmp_path / "copy-redes.md").read_text(encoding="utf-8")
     assert "Plan de publicación sugerido" in md
     assert "Día 1" in md
+
+
+# ── El wrapper .ajuste debe ser flex column ───────────────────────
+
+def test_ajuste_es_flex_column_para_centrar_hijos():
+    """Regresión: sin display:flex, .badge/.cta/.ind-swipe (align-self:
+    center) quedan pegados a la izquierda."""
+    import re
+    html = _slide(1, 5)
+    m = re.search(r"\.ajuste \{[^}]*\}", html)
+    assert m, "no se encontró la regla .ajuste"
+    regla = m.group(0)
+    assert "display: flex" in regla
+    assert "flex-direction: column" in regla
+    # el badge confía en align-self: center
+    assert "align-self: center" in re.search(r"\.badge \{[^}]*\}", html).group(0)
