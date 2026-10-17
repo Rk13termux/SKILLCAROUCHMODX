@@ -72,3 +72,29 @@ def test_story_fuente_lleva_una_clave(tmp_path):
     story = (tmp_path / "st" / "story-fuente.html").read_text(encoding="utf-8")
     assert 'class="clave"' in story
     assert "color: #06B6D4" in story
+
+
+def test_puente_recap_elige_inicio_medio_cierre():
+    import tech_carousel as tc
+    titulos = ["Qué es Hermes Agent", "Instalación en una línea",
+               "El loop que lo hace agente", "Tu agente en Telegram",
+               "Seguridad antes que magia"]
+    recap = tc._elegir_recap(titulos)
+    assert recap == ["Qué es Hermes Agent", "El loop que lo hace agente",
+                     "Seguridad antes que magia"]
+
+
+def test_puente_recap_recorta_a_7_palabras():
+    import tech_carousel as tc
+    recap = tc._elegir_recap(["Uno dos tres cuatro cinco seis siete ocho nueve",
+                              "Otro título válido"])
+    assert recap[0] == "Uno dos tres cuatro cinco seis siete"
+    assert len(recap) == 2
+
+
+def test_puente_recap_sin_titulos_devuelve_vacio():
+    import tech_carousel as tc
+    assert tc._elegir_recap([]) == []
+    assert tc._texto_titulo("") == ""
+    assert "Hermes" in tc._texto_titulo(
+        '<div class="titulo">Qué es <span class="clave">Hermes</span></div>')

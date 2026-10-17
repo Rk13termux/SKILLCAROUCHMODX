@@ -32,11 +32,13 @@ Salidas (en la carpeta fuente):
 import argparse
 import base64
 import json
+import os
 import re
 import subprocess
 import sys
 import time
 import zlib
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parent
@@ -57,7 +59,7 @@ from theme import tokens as _tokens
 from copywriting.base import resolver_cta_palabra
 from utils.render import resolver_chromium, resolver_ctslider
 
-MARCA_DEFECTO = "TechEdu"
+MARCA_DEFECTO = "CHMODX"
 
 CTSLIDER = resolver_ctslider()
 CHROMIUM = resolver_chromium()
@@ -67,6 +69,20 @@ FORMATOS = {
     "3:4": {"w": 1080, "h": 1440},
     "4:5": {"w": 1080, "h": 1350},
     "1:1": {"w": 1080, "h": 1080},
+}
+
+# ── Presets de tipo de post (brief → receta) ───────────────────────
+# Cada preset fija vertical + whitelist de componentes para que el banco
+# de copy solo use esos (en auto) y el builder avise si otro se cuela.
+
+PRESETS = {
+    "repo": {"vertical": "prog",
+             "componentes": "card-repo,gh-stats,tree,code,terminal"},
+    "comandos": {"vertical": "infra",
+                 "componentes": "terminal,tabla,code,checklist,quiz"},
+    "python": {"vertical": "prog",
+               "componentes": "editor,code,terminal,diff,quiz"},
+    "mixto": {"vertical": "auto", "componentes": "auto"},
 }
 
 # ── Chromium (con fallback de GPU) ─────────────────────────────────
@@ -102,14 +118,11 @@ def _correr_chromium(cmd, espera=None, existe=None, cwd=None):
         return True
 
     try:
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=cwd)
-        stdout, stderr = proc.communicate()
-        r_code = proc.returncode
-        r = type('R', (), {'returncode': r_code, 'stdout': stdout, 'stderr': stderr})()
-    except Exception as e:
+        r = subprocess.run(cmd, capture_output=True, text=True, cwd=cwd)
+    except Exception:
         raise
 
-    if cumple(r, stdout, stderr, r_code) or "--in-process-gpu" in cmd:
+    if cumple(r, r.stdout, r.stderr, r.returncode) or "--in-process-gpu" in cmd:
         return r
     _GPU_PROBLEMA = True
     cmd2 = list(cmd)
@@ -120,11 +133,7 @@ def _correr_chromium(cmd, espera=None, existe=None, cwd=None):
             existe.unlink()
         except OSError:
             pass
-    proc = subprocess.Popen(cmd2, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=cwd)
-    stdout, stderr = proc.communicate()
-    r_code = proc.returncode
-    r = type('R', (), {'returncode': r_code, 'stdout': stdout, 'stderr': stderr})()
-    return r
+    return subprocess.run(cmd2, capture_output=True, text=True, cwd=cwd)
 
 
 # ── Validación de props de componentes (fail-fast) ─────────────────
@@ -391,6 +400,7 @@ __links_fuentes__
     flex: 1;
     min-height: 0;
   }
+  .ajuste { width: 100%; zoom: __contenido_zoom__; /* AJUSTE_ZOOM */ }
   .icono-box { display: flex; justify-content: center; margin-bottom: __icon_margin__px; }
   .icono-box .icono-svg {
     width: __icon_size__px;
@@ -548,6 +558,152 @@ __links_fuentes__
     line-height: 1.38;
     max-width: 820px;
   }
+  .slide.final-cta .cta-seguir {
+    display: inline-block;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 28px;
+    max-width: 860px;
+    padding: 26px 44px;
+    line-height: 1.34;
+    text-align: center;
+    white-space: normal;
+    background: #000000;
+    color: #FFFFFF;
+    border: 3px solid var(--acento);
+    border-radius: 60px;
+    font-weight: 800;
+    font-size: __cta_size__px;
+    box-shadow: 0 0 34px __accent_rgba_30__, 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  .slide.final-cta .cta-seguir .verbo { color: var(--acento); }
+  .slide.final-cta .guia-final {
+    margin-top: 22px;
+    max-width: 840px;
+    border: 2px solid var(--acento);
+    border-radius: 18px;
+    padding: 18px 26px;
+    font-size: 34px;
+    line-height: 1.42;
+    color: #E5E7EB;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.03);
+  }
+  .slide.final-cta .guia-final b { color: #FFFFFF; }
+  .slide.final-cta .cta-grande {
+    margin-top: 28px;
+    max-width: 880px;
+    border: 3px solid var(--acento);
+    border-radius: 24px;
+    padding: 24px 34px;
+    font-weight: 800;
+    font-size: 54px;
+    line-height: 1.28;
+    color: #FFFFFF;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.03);
+    box-shadow: 0 0 40px __accent_rgba_30__;
+  }
+  .slide.final-cta .cta-grande .clave { color: var(--acento); }
+  .slide.final-cta .comp-wrap { zoom: 0.82; margin-top: 20px; }
+  /* ── Modo landing: cierre que empuja a un dominio propio ───────── */
+  .landing-card {
+    margin-top: 26px;
+    max-width: 900px;
+    border: 3px solid var(--acento);
+    border-radius: 26px;
+    padding: 26px 34px;
+    text-align: center;
+    background: #000000;
+    box-shadow: 0 0 44px __accent_rgba_30__, 0 10px 30px rgba(0, 0, 0, 0.4);
+  }
+  .landing-card__tag {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 4px;
+    color: var(--acento);
+  }
+  .landing-card__dominio {
+    font-weight: 800;
+    font-size: __landing_dom_size__px;
+    line-height: 1.12;
+    color: var(--acento);
+    margin: 10px 0 12px;
+    word-break: break-word;
+  }
+  .landing-card__sub {
+    font-size: 31px;
+    line-height: 1.42;
+    color: #E5E7EB;
+  }
+  .landing-boton {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 20px 40px;
+    background: #000000;
+    color: #FFFFFF;
+    border: 3px solid var(--acento);
+    border-radius: 60px;
+    font-weight: 800;
+    font-size: 34px;
+    box-shadow: 0 0 30px __accent_rgba_30__;
+  }
+  .landing-boton .clave { color: var(--acento); }
+  .landing-boton--sec {
+    margin-top: 14px;
+    background: transparent;
+    border: 2px dashed var(--acento);
+    color: #E5E7EB;
+    font-size: 28px;
+    padding: 15px 34px;
+    box-shadow: none;
+  }
+  .slide.final-cta .comandos-linea {
+    margin-top: 22px;
+    font-size: 30px;
+    line-height: 1.4;
+    color: #9CA3AF;
+    text-align: center;
+  }
+  .slide.final-cta .comandos-linea b { color: #FFFFFF; }
+  .slide.puente .landing-mini {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+    border: 2px solid var(--acento);
+    border-radius: 14px;
+    background: #000000;
+    padding: 14px 24px;
+  }
+  .slide.puente .landing-mini__dom {
+    font-weight: 800;
+    font-size: 34px;
+    color: var(--acento);
+  }
+  .slide.puente .landing-mini__sub {
+    font-size: 26px;
+    color: #E5E7EB;
+  }
+  .guia-card {
+    margin-top: 26px;
+    border-left: 6px solid var(--acento);
+    border-radius: 0 16px 16px 0;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 16px 22px;
+    text-align: left;
+  }
+  .guia-card__tag {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    color: var(--acento);
+    margin-bottom: 6px;
+  }
+  .guia-card__t { font-weight: 800; font-size: 36px; color: #FFFFFF; line-height: 1.3; }
+  .guia-card__s { font-size: 32px; color: #C9CDD3; line-height: 1.4; margin-top: 4px; }
   .comp-error {
     margin-top: 24px;
     padding: 18px 22px;
@@ -571,7 +727,9 @@ __componentes_css__
     </div>
     <div class="progreso"><div class="relleno"></div></div>
     <div class="contenido">
+      <div class="ajuste">
       __contenido__
+      </div>
     </div>
     <div class="pie">
       <img class="isotipo" src="__isotipo__" alt="__marca__">
@@ -610,6 +768,8 @@ def _format_scaling(fmt_key):
             "__sec_margin__": 10, "__sec_size__": 26, "__ind_margin__": 22,
             "__ind_size__": 21, "__footer_size__": 22, "__pie_pad_v__": 14,
             "__pie_pad_b__": 28, "__footer_logo__": 36,
+            "__landing_dom_size__": 54,
+            "__contenido_zoom__": 1,
         }
         sc.update({
             "__comp_zoom__": 0.72, "__comp_margin__": 14, "__comp_base__": 45,
@@ -636,6 +796,8 @@ def _format_scaling(fmt_key):
         "__ind_size__": round(26 * s), "__footer_size__": 28,
         "__pie_pad_v__": round(34 * s), "__pie_pad_b__": round(56 * s),
         "__footer_logo__": round(54 * s),
+        "__landing_dom_size__": round(72 * s),
+        "__contenido_zoom__": 1,
     }
     ajustes = {
         "3:4": {"__pad_top__": 62, "__pad_bottom__": 160,
@@ -664,10 +826,10 @@ MAX_PALABRAS_CUBIERTA = 12
 
 HOOKS_CUBIERTA = (
     '<span class="clave">{kw}</span>: lo que casi nadie revisa.',
-    'Antes de publicar, entiende <span class="clave">{kw}</span>.',
+    'Tu <span class="clave">{kw}</span> falla en silencio.',
     'El fallo más caro casi siempre es <span class="clave">{kw}</span>.',
-    'Todo sistema cae por <span class="clave">{kw}</span>.',
-    'Configura <span class="clave">{kw}</span> antes de escalar.',
+    'Antes de escalar, entiende <span class="clave">{kw}</span>.',
+    'Configura <span class="clave">{kw}</span> antes de que falle.',
 )
 
 INDICADORES_SWIPE = (
@@ -768,15 +930,18 @@ def _hook_portada(body, kw, semilla):
     return titulo, subtitulo
 
 
-def _micro_indicador(i, n, semilla):
+def _micro_indicador(i, n, semilla, modo="comentar"):
     if i == 1:
         return f"{n} ideas, una por slide"
     if i == n - 1:
+        if (modo or "comentar") == "seguir":
+            return "El cierre está en el último slide"
         return "La palabra está en la última"
     return INDICADORES_SWIPE[(i - 2) % len(INDICADORES_SWIPE)]
 
 
-_FRASES_INDICADOR = INDICADORES_SWIPE + ("La palabra está en la última",)
+_FRASES_INDICADOR = INDICADORES_SWIPE + ("La palabra está en la última",
+                                        "El cierre está en el último slide")
 
 _RE_INDICADOR = re.compile(
     r"(?:\s*<br\s*/?>)*\s*(?:[\u2190-\u2199\u21B5]+\s*)?(?:"
@@ -954,9 +1119,10 @@ def ajustar_claves_por_lineas(renders_dir, nombres, ancho, alto, max_pasadas=3):
 _JS_OVERFLOW = """<script>window.addEventListener('load', function(){
 var c=document.querySelector('.contenido');
 if(!c){return;}
+var t=document.querySelector('.ajuste')||c;
 var cr=c.getBoundingClientRect(), bottom=-1e9, top=1e9, n=0;
-for(var i=0;i<c.children.length;i++){
-  var r=c.children[i].getBoundingClientRect();
+for(var i=0;i<t.children.length;i++){
+  var r=t.children[i].getBoundingClientRect();
   if(r.height>0){ n++; bottom=Math.max(bottom,r.bottom); top=Math.min(top,r.top); }
 }
 if(!n){return;}
@@ -966,22 +1132,36 @@ c.setAttribute('data-recorte',recorte);
 });</script>"""
 
 
-def chequear_overflow(renders_dir, nombres, ancho, alto):
-    """Mide el recorte real de .contenido.
+# ── Auto-fit: baja el zoom del contenido hasta que nada se recorte ──
 
-    El CSS clipa con overflow:hidden: sin esta medición un lienzo corto
-    (4:5, 3:4, 1:1) puede recortar componentes sin ningún aviso.
-    Devuelve [(nombre, px_recortadas), ...] de los slides afectados.
-    """
+_ZOOM_RE = re.compile(r"(\.ajuste \{[^}]*?zoom:\s*)([0-9.]+)")
+
+
+def _zoom_de(html):
+    m = _ZOOM_RE.search(html)
+    return float(m.group(2)) if m else 1.0
+
+
+def _set_zoom(html, z):
+    return _ZOOM_RE.sub(lambda m: f"{m.group(1)}{z:g}", html, count=1)
+
+
+def _medir_recortes(renders_dir, nombres, ancho, alto, workers=1):
+    """{nombre: px_recortadas} (px<=0 = OK; -1 = no se pudo medir)."""
     probe_dir = renders_dir / "_probe"
     probe_dir.mkdir(parents=True, exist_ok=True)
-    recortes = []
-    for nombre in nombres:
+
+    def medir(nombre):
         src = renders_dir / nombre
+        # Archivo de sonda único por slide: seguro en paralelo.
         probe = probe_dir / nombre
-        probe.write_text(
-            src.read_text(encoding="utf-8").replace("</body>", _JS_OVERFLOW + "</body>"),
-            encoding="utf-8")
+        try:
+            probe.write_text(
+                src.read_text(encoding="utf-8").replace(
+                    "</body>", _JS_OVERFLOW + "</body>"),
+                encoding="utf-8")
+        except OSError:
+            return (nombre, -1)
         cmd = _cmd_chromium(
             f"--window-size={ancho},{alto}",
             "--virtual-time-budget=4000", "--dump-dom",
@@ -989,24 +1169,108 @@ def chequear_overflow(renders_dir, nombres, ancho, alto):
         )
         salida = _correr_chromium(cmd, espera=r'data-recorte="-?\d+"').stdout
         m = re.search(r'data-recorte="(-?\d+)"', salida)
-        if not m:
-            recortes.append((nombre, -1))
-        elif int(m.group(1)) > 0:
-            recortes.append((nombre, int(m.group(1))))
+        return (nombre, int(m.group(1)) if m else -1)
+
+    if workers and workers > 1:
+        with ThreadPoolExecutor(max_workers=workers) as ex:
+            res = list(ex.map(medir, nombres))
+    else:
+        res = [medir(n) for n in nombres]
     for f in probe_dir.glob("*.html"):
         f.unlink()
     try:
         probe_dir.rmdir()
     except OSError:
         pass
-    return recortes
+    return dict(res)
+
+
+def autoajustar_recortes(renders_dir, nombres, ancho, alto,
+                         minimo=0.70, paso=0.94, max_iter=8, workers=1):
+    """Reduce el zoom del contenido slide por slide hasta que no recorte.
+
+    Devuelve {nombre: px} de los que siguen recortando tras el piso (`minimo`).
+    """
+    pendientes = list(nombres)
+    for _ in range(max_iter):
+        if not pendientes:
+            break
+        medidos = _medir_recortes(renders_dir, pendientes, ancho, alto, workers)
+        malos = {n: px for n, px in medidos.items() if px > 0}
+        if not malos:
+            return {}
+        for nombre, _px in malos.items():
+            path = renders_dir / nombre
+            try:
+                html = path.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            z = _zoom_de(html)
+            nz = round(max(minimo, z * paso), 4)
+            if nz < z:
+                path.write_text(_set_zoom(html, nz), encoding="utf-8")
+        pendientes = list(malos)
+    finales = _medir_recortes(renders_dir, pendientes, ancho, alto, workers)
+    return {n: px for n, px in finales.items() if px > 0}
+
+
+def chequear_overflow(renders_dir, nombres, ancho, alto, workers=1):
+    """Mide el recorte real de .contenido (compat: lista de tuplas).
+
+    El CSS clipa con overflow:hidden: sin esta medición un lienzo corto
+    (4:5, 3:4, 1:1) puede recortar componentes sin ningún aviso.
+    Devuelve [(nombre, px_recortadas), ...] de los slides afectados.
+    """
+    medidos = _medir_recortes(renders_dir, nombres, ancho, alto, workers)
+    return [(n, px) for n, px in medidos.items() if px != 0]
+
+
+# ── Puente-recap: las 3 ideas clave del propio carrusel ────────────
+
+def _texto_titulo(body):
+    """Primer .titulo del body en texto plano (sin tags ni entidades)."""
+    m = re.search(r'<div class="titulo">(.*?)</div>', body or "", re.DOTALL)
+    if not m:
+        return ""
+    txt = re.sub(r"<[^>]+>", "", m.group(1))
+    txt = (txt.replace("&nbsp;", " ").replace("&amp;", "&")
+              .replace("&lt;", "<").replace("&gt;", ">")
+              .replace("&quot;", '"'))
+    return re.sub(r"\s+", " ", txt).strip()
+
+
+def _landing_dominio(url):
+    """'https://chmodxcode.pro/' → 'chmodxcode.pro' (para mostrar limpio)."""
+    d = (url or "").strip()
+    for pre in ("https://", "http://", "www."):
+        if d.lower().startswith(pre):
+            d = d[len(pre):]
+    return d.rstrip("/") or (url or "").strip()
+
+
+def _elegir_recap(titulos):
+    """3 títulos repartidos (inicio/medio/cierre), 7 palabras máx c/u."""
+    limpios = [t for t in titulos if _contar_palabras(t) >= 2]
+    if len(limpios) < 2:
+        return []
+    idx = [0, len(limpios) // 2, len(limpios) - 1]
+    vistos, recap = set(), []
+    for k in idx:
+        PALABRAS = " ".join(limpios[k].split()[:7])
+        if PALABRAS.lower() not in vistos:
+            vistos.add(PALABRAS.lower())
+            recap.append(PALABRAS)
+    return recap
 
 
 # ── Generación de HTML por slide ───────────────────────────────────
 
 def generar_html(i, n, data, fmt_key, fmt, accent_vars, isotipo, marca,
                   icono=None, badge=None, cta_palabra="CLAVE",
-                  resalte_vars=None, semilla="", warnings=None):
+                  resalte_vars=None, semilla="", warnings=None,
+                  guia=True, guia_tag=None, guia_titulo=None, guia_sub=None,
+                  comandos_finales=None, cta_modo="seguir", recap_titulos=None,
+                  landing=None, landing2=None, landing2_texto=None):
     numero = data["number"] if data["number"] else f"{i}/{n}"
     cuerpo = _quitar_indicador(data["body"])
     cls = _clase_slide(i, n)
@@ -1022,32 +1286,117 @@ def generar_html(i, n, data, fmt_key, fmt, accent_vars, isotipo, marca,
     if i == 1:
         reemplaza = True
         kw = (cta_palabra or badge or "CLAVE").strip()
+        # La portada puede traer UN componente (ej. terminal con gancho):
+        # expandir() lo deja al final en .comp-wrap; se separa para que
+        # _hook_portada lea solo título/subtítulo y se re-anexa después.
+        comp_html = ""
+        corte = cuerpo.find('<div class="comp-wrap">')
+        if corte != -1:
+            comp_html = cuerpo[corte:]
+            cuerpo = cuerpo[:corte]
         titulo_c, subtitulo_c = _hook_portada(cuerpo, kw, semilla)
         extra = f'<div class="titulo">{titulo_c}</div>'
         if subtitulo_c:
             extra += f'<div class="cuerpo">{subtitulo_c}</div>'
-        extra += _html_indicador(_micro_indicador(i, n, semilla))
+        if comp_html:
+            extra += comp_html
+        extra += _html_indicador(_micro_indicador(i, n, semilla, cta_modo))
     elif i == n - 1:
         cls = "puente"
         reemplaza = True
-        t, c = _elegir(PUENTES, semilla)
-        extra = (f'<div class="titulo">{t}</div>'
-                 f'<div class="cuerpo">{c}</div>'
-                 f'{_html_indicador(_micro_indicador(i, n, semilla))}')
+        recap = _elegir_recap(recap_titulos or [])
+        landing_mini = ""
+        if landing:
+            dom = _landing_dominio(landing)
+            landing_mini = (
+                f'<div class="landing-mini">'
+                f'<span class="landing-mini__dom">{dom}</span>'
+                f'<span class="landing-mini__sub">Curso de Python + '
+                f'canal de Telegram</span></div>')
+        if recap:
+            props_chk = {"titulo": "Lo esencial en 3 ideas",
+                         "items": recap}
+            cuerpo_chk, _u = expandir(
+                '<div class="componente" data-component="checklist" '
+                f"data-props='{json.dumps(props_chk, ensure_ascii=False)}'>"
+                "</div>", {"accent": accent_vars["accent"]}, warnings)
+            titulo_p = ("Ver no es hacer: empieza a programar hoy"
+                        if landing else "Antes del final: el resumen")
+            extra = (f'<div class="titulo">{titulo_p}</div>'
+                     f'{cuerpo_chk}{landing_mini}'
+                     f'{_html_indicador(_micro_indicador(i, n, semilla, cta_modo))}')
+        else:
+            t, c = _elegir(PUENTES, semilla)
+            if landing:
+                t = "La mejor hora para tu primer script es hoy"
+                c = ("Cada programador empezó con una sola línea. "
+                     "La tuya puede ser la próxima.")
+            extra = (f'<div class="titulo">{t}</div>'
+                     f'<div class="cuerpo">{c}</div>{landing_mini}'
+                     f'{_html_indicador(_micro_indicador(i, n, semilla, cta_modo))}')
     elif i == n:
         cls = "final-cta"
         reemplaza = True
         palabra = cta_palabra or "CLAVE"
-        extra = (
-            '<div class="titulo">¿Listo para aplicarlo?</div>'
-            f'<div class="cta">Comenta <span class="clave">{palabra}</span> '
-            'y te paso la checklist completa</div>'
-            f'<div class="secundario">Guarda este carrusel o pásaselo a tu '
-            f'equipo técnico · {marca}</div>'
-        )
+        if (cta_modo or "comentar") == "seguir":
+            boton_cta = ('<div class="cta-seguir"><span class="verbo">SÍGUENOS'
+                         '</span> Y NO TE PIERDAS LO QUE SIGUE</div>')
+            secundario = (f'<div class="secundario">Guarda este carrusel: lo '
+                          f'vas a necesitar · El próximo tema lo eligen los '
+                          f'seguidores · {marca}</div>')
+        else:
+            boton_cta = (
+                f'<div class="cta">Comenta <span class="clave">{palabra}</span> '
+                'y te paso la checklist completa</div>')
+            secundario = (
+                f'<div class="secundario">Guarda este carrusel o pásaselo a tu '
+                f'equipo técnico · {marca}</div>')
+        terminal_html = ""
+        if comandos_finales:
+            tope_term = 6 if landing else 12
+            props_term = {"titulo": "comandos · listos para copiar",
+                          "lines": [{"t": "cmd", "v": c}
+                                    for c in comandos_finales[:tope_term]]}
+            cuerpo_term, _usados = expandir(
+                '<div class="componente" data-component="terminal" '
+                f"data-props='{json.dumps(props_term, ensure_ascii=False)}'>"
+                "</div>", {"accent": accent_vars["accent"]}, warnings)
+            terminal_html = cuerpo_term
+        if landing:
+            dom = _landing_dominio(landing)
+            sec = ""
+            if landing2:
+                dom2 = _landing_dominio(landing2)
+                txt2 = (landing2_texto or "ÚNETE AL TELEGRAM").strip()
+                sec = (f'<div class="landing-boton landing-boton--sec">{txt2} '
+                       f'<span class="clave">{dom2.upper()}</span></div>')
+            extra = (
+                '<div class="titulo">De mirar a programar</div>'
+                + terminal_html +
+                '<div class="landing-card">'
+                '<div class="landing-card__tag">TU SIGUIENTE PASO</div>'
+                f'<div class="landing-card__dominio">{dom}</div>'
+                '<div class="landing-card__sub">Curso de Python completo y '
+                'canal de Telegram para resolver dudas en comunidad.</div>'
+                f'<div class="landing-boton">EMPIEZA EN <span class="clave">'
+                f'{dom.upper()}</span></div>'
+                + sec +
+                '</div>'
+                '<div class="comandos-linea">Todos los comandos completos '
+                'están en el <b>primer comentario</b></div>'
+            )
+        else:
+            extra = (
+                '<div class="titulo">¿Listo para aplicarlo?</div>'
+                + terminal_html +
+                '<div class="cta-grande">COPIA LOS COMANDOS DEL '
+                '<span class="clave">PRIMER COMENTARIO</span></div>'
+                + boton_cta
+                + secundario
+            )
     else:
         if not _ya_tiene_indicador(cuerpo):
-            extra = _html_indicador(_micro_indicador(i, n, semilla))
+            extra = _html_indicador(_micro_indicador(i, n, semilla, cta_modo))
 
     contenido = ""
     if icono:
@@ -1056,6 +1405,25 @@ def generar_html(i, n, data, fmt_key, fmt, accent_vars, isotipo, marca,
     if i == 1 and badge:
         contenido += f'<div class="badge">{badge}</div>'
     contenido += extra if reemplaza else cuerpo + extra
+
+    # Funnel: card fija en el slide 2 que empuja al último slide.
+    if guia and i == 2 and n >= 3:
+        tag = guia_tag or "NO TE LO PIERDAS"
+        tit = guia_titulo or "Los comandos completos están al final"
+        sub = (guia_sub or "Desliza hasta el último slide: repo + comandos "
+                           "listos para copiar y primer comentario con todo")
+        if landing and not guia_titulo:
+            dom = _landing_dominio(landing)
+            tit = "Comandos y tu próximo paso, al final"
+            sub = f"Y en {dom}: curso de Python + Telegram"
+        card_style = (' style="margin-top:14px;padding:12px 22px"'
+                      if landing else "")
+        contenido += (
+            f'<div class="guia-card"{card_style}>'
+            f'<div class="guia-card__tag">{tag}</div>'
+            f'<div class="guia-card__t">{tit}</div>'
+            f'<div class="guia-card__s">{sub}</div></div>'
+        )
 
     pie = data["footer"] or f"{marca}"
     pie = pie.replace("AudioBlaze", marca)
@@ -1091,15 +1459,20 @@ def generar_html(i, n, data, fmt_key, fmt, accent_vars, isotipo, marca,
 
 # ── Render (UN slide a la vez) ─────────────────────────────────────
 
-def renderizar(html_path, preview_dir, w, h, intentos=3):
+def renderizar(html_path, preview_dir, w, h, intentos=3, reusar=False):
     preview_dir.mkdir(parents=True, exist_ok=True)
     render_h = h + 87  # Chrome resta 87px de chrome de ventana al viewport
     dest = preview_dir / html_path.with_suffix(".png").name
+    if dest.exists() and reusar:
+        print(f"  = PNG {dest.name} (sin cambios)")
+        return True
     if dest.exists():
         dest.unlink()
-    src = html_path.parent / "screenshot.png"
+    # Nombre único: varios Chromium pueden renderizar en paralelo sin pisarse.
+    shot = f"__shot_{html_path.stem}.png"
+    src = html_path.parent / shot
     cmd = _cmd_chromium(
-        "--screenshot=screenshot.png",
+        f"--screenshot={shot}",
         f"--window-size={w},{render_h}",
         "--virtual-time-budget=8000",
         "--hide-scrollbars",
@@ -1130,6 +1503,267 @@ def renderizar(html_path, preview_dir, w, h, intentos=3):
         return False
     print(f"  OK PNG: {dest.name}")
     return True
+
+
+def renderizar_paralelo(html_paths, preview_dir, w, h, workers=4, reusar=False):
+    """Renderiza N slides con varios Chromium a la vez. Devuelve los fallidos.
+
+    Con `reusar`, salta los slides cuyo HTML no cambió desde la última vez
+    (hash guardado en `preview/.hashes.json`) y cuyo PNG ya existe.
+    """
+    import hashlib
+    preview_dir.mkdir(parents=True, exist_ok=True)
+    man_path = preview_dir / ".hashes.json"
+    try:
+        manifest = json.loads(man_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        manifest = {}
+
+    pendientes, reusados = [], 0
+    for p in html_paths:
+        dest = preview_dir / p.with_suffix(".png").name
+        if reusar and dest.exists():
+            try:
+                sha = hashlib.sha1(p.read_bytes()).hexdigest()
+            except OSError:
+                sha = None
+            if sha and manifest.get(p.name) == sha:
+                reusados += 1
+                continue
+        pendientes.append(p)
+    if reusados:
+        print(f"  = {reusados} PNG sin cambios (reusados)")
+
+    def _guardar_manifest():
+        try:
+            man_path.write_text(json.dumps(manifest, indent=0), encoding="utf-8")
+        except OSError:
+            pass
+
+    def _anotar(p):
+        try:
+            manifest[p.name] = hashlib.sha1(p.read_bytes()).hexdigest()
+        except OSError:
+            pass
+
+    fallidos = []
+    if workers <= 1:
+        for p in pendientes:
+            if not renderizar(p, preview_dir, w, h):
+                fallidos.append(p.name)
+            else:
+                _anotar(p)
+                _guardar_manifest()
+    else:
+        with ThreadPoolExecutor(max_workers=workers) as ex:
+            futuros = {ex.submit(renderizar, p, preview_dir, w, h): p
+                       for p in pendientes}
+            for fut in futuros:
+                p = futuros[fut]
+                try:
+                    ok = fut.result()
+                except Exception as e:  # noqa: BLE001
+                    print(f"  ✗ {p.name}: error de render ({e}).")
+                    ok = False
+                if not ok:
+                    fallidos.append(p.name)
+                else:
+                    # Manifiesto al día tras cada slide: si el proceso se corta,
+                    # lo ya renderizado se reutiliza con --incremental.
+                    _anotar(p)
+                    _guardar_manifest()
+
+    for p in pendientes:
+        if p.name in fallidos:
+            continue
+        if p.name not in manifest:
+            _anotar(p)
+    _guardar_manifest()
+    return fallidos
+
+
+# ── QA de repetición (componentes y texto) ─────────────────────────
+
+
+def _texto_visible(html):
+    """Texto plano del contenido del slide (sin chrome, tags ni atributos)."""
+    import html as _h
+    sin_style = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", html,
+                       flags=re.S | re.I)
+    # El número y el pie son constantes en todos los slides: fuera.
+    sin_chrome = re.sub(
+        r'<div class="(numero|pie|ind-swipe|marca)"[^>]*>.*?</div>', " ",
+        sin_style, flags=re.S | re.I)
+    txt = re.sub(r"<[^>]+>", " ", sin_chrome)
+    txt = _h.unescape(txt)
+    return re.sub(r"\s+", " ", txt).strip().lower()
+
+
+def _componentes_fuente(input_dir, nombres):
+    """{nombre: [componentes declarados]} leyendo el slide fuente."""
+    por_slide = {}
+    for nombre in nombres:
+        p = input_dir / nombre
+        try:
+            txt = p.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        comps = re.findall(r'data-component="([^"]+)"', txt)
+        if comps:
+            por_slide[nombre] = [c.lower().strip() for c in comps]
+    return por_slide
+
+
+def qa_repeticion(input_dir, nombres, umbral=0.85):
+    """Avisa de texto casi idéntico entre slides y de componentes repetidos.
+
+    Compara el contenido REAL de los slides fuente (no el render, que repite
+    footer/número en todos y daría falsos positivos). No bloquea: devuelve la
+    lista de avisos para imprimir.
+    """
+    import difflib
+    avisos = []
+
+    # 1) Texto casi idéntico en slides no consecutivos.
+    textos = {}
+    for nombre in nombres:
+        p = input_dir / nombre
+        try:
+            textos[nombre] = _texto_visible(p.read_text(encoding="utf-8"))
+        except OSError:
+            pass
+    nombres_ok = [n for n in nombres if textos.get(n)]
+    for a in range(len(nombres_ok)):
+        for b in range(a + 1, len(nombres_ok)):
+            na, nb = nombres_ok[a], nombres_ok[b]
+            if abs(a - b) == 1:
+                continue
+            ta, tb = textos[na], textos[nb]
+            if not ta or not tb or abs(len(ta) - len(tb)) > 0.4 * max(len(ta), len(tb)):
+                continue
+            r = difflib.SequenceMatcher(None, ta, tb).ratio()
+            if r >= umbral:
+                avisos.append(f"{na} y {nb} comparten {round(r * 100)}% del "
+                              f"texto: revisá que no digan lo mismo.")
+
+    # 2) Mismo componente en demasiados slides.
+    fuentes = _componentes_fuente(input_dir, nombres)
+    conteo = {}
+    for comps in fuentes.values():
+        for c in set(comps):
+            conteo[c] = conteo.get(c, 0) + 1
+    total = len(fuentes) or 1
+    for c, k in sorted(conteo.items(), key=lambda x: -x[1]):
+        if k >= 4 and k / total >= 0.5:
+            avisos.append(f"componente '{c}' aparece en {k}/{total} slides: "
+                          f"variá el ritmo visual.")
+    return avisos
+
+
+# ── Contact sheet · export PDF/Reel ────────────────────────────────
+
+
+def generar_contact_sheet(input_dir, nombres, fmt, cols=5, thumb=360):
+    """Grilla PNG con todo el carrusel para revisarlo de un vistazo."""
+    if Image is None:
+        print("  ! Contact sheet: falta Pillow.")
+        return None
+    renders = input_dir / "preview"
+    pngs = []
+    for nombre in nombres:
+        p = renders / Path(nombre).with_suffix(".png")
+        if p.exists():
+            pngs.append(p)
+    if not pngs:
+        return None
+    escala = thumb / fmt["w"]
+    th, tw = int(fmt["h"] * escala), thumb
+    gap = 18
+    filas = (len(pngs) + cols - 1) // cols
+    ancho = cols * tw + (cols + 1) * gap
+    alto = filas * th + (filas + 1) * gap
+    hoja = Image.new("RGB", (ancho, alto), (11, 11, 13))
+    for i, p in enumerate(pngs):
+        try:
+            im = Image.open(str(p)).convert("RGB").resize((tw, th))
+        except Exception:
+            continue
+        fila, col = divmod(i, cols)
+        x = gap + col * (tw + gap)
+        y = gap + fila * (th + gap)
+        hoja.paste(im, (x, y))
+        im.close()
+    dest = input_dir / "contact-sheet.png"
+    hoja.save(str(dest))
+    hoja.close()
+    print(f"  OK contact-sheet.png ({len(pngs)} slides)")
+    return dest
+
+
+def exportar_pdf(input_dir, nombres, fmt):
+    """Carrusel completo en un PDF (una página por slide)."""
+    if Image is None:
+        print("  ! PDF: falta Pillow.")
+        return None
+    renders = input_dir / "preview"
+    imgs = []
+    for nombre in nombres:
+        p = renders / Path(nombre).with_suffix(".png")
+        if p.exists():
+            try:
+                imgs.append(Image.open(str(p)).convert("RGB"))
+            except Exception:
+                pass
+    if not imgs:
+        return None
+    dest = input_dir / f"{input_dir.name}.pdf"
+    imgs[0].save(str(dest), save_all=True, append_images=imgs[1:],
+                 resolution=100.0)
+    for im in imgs:
+        im.close()
+    print(f"  OK {dest.name} ({len(imgs)} páginas)")
+    return dest
+
+
+def exportar_reel(input_dir, nombres, fmt, fps=1.6):
+    """Reel MP4 con ffmpeg (si está instalado). Silencioso si no lo está."""
+    import shutil
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        print("  ! Reel: ffmpeg no está instalado; se omite el MP4.")
+        return None
+    renders = input_dir / "preview"
+    pngs = [renders / Path(n).with_suffix(".png") for n in nombres]
+    pngs = [p for p in pngs if p.exists()]
+    if not pngs:
+        return None
+    lista = input_dir / ".reel.txt"
+    dur = round(1.0 / fps, 3)
+    with lista.open("w", encoding="utf-8") as f:
+        for p in pngs:
+            f.write(f"file '{p.resolve()}'\nduration {dur}\n")
+        f.write(f"file '{pngs[-1].resolve()}'\n")
+    dest = input_dir / f"{input_dir.name}.mp4"
+    cmd = [ffmpeg, "-y", "-f", "concat", "-safe", "0", "-i", str(lista),
+           "-vf", f"scale={fmt['w']}:{fmt['h']}:force_original_aspect_ratio=decrease,"
+                  f"pad={fmt['w']}:{fmt['h']}:(ow-iw)/2:(oh-ih)/2:color=0x0B0B0D,"
+                  f"format=yuv420p", "-r", "30", "-c:v", "libx264", "-preset",
+           "medium", str(dest)]
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True)
+    except Exception as e:  # noqa: BLE001
+        print(f"  ! Reel: ffmpeg falló ({e}).")
+        return None
+    finally:
+        try:
+            lista.unlink()
+        except OSError:
+            pass
+    if r.returncode != 0 or not dest.exists():
+        print("  ! Reel: ffmpeg no pudo generar el MP4.")
+        return None
+    print(f"  OK {dest.name} ({len(pngs)} slides)")
+    return dest
 
 
 # ── Story teaser (propia, sin dependencias externas) ───────────────
@@ -1183,6 +1817,53 @@ __links_fuentes__
     color: var(--resalte); font-weight: 800;
     text-shadow: 0 0 27px __resalte_rgba32__, 0 2px 6px rgba(0,0,0,.55);
   }
+  .story-sub {
+    margin-top: 36px; max-width: 860px;
+    font-size: 40px; line-height: 1.45; color: #C9CDD3;
+  }
+  .story .terminal {
+    width: 100%; margin-top: 70px;
+    background: #000000; border: 2px solid #334155; border-radius: 22px;
+    overflow: hidden; text-align: left;
+    font-size: 36px;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45);
+  }
+  .story .terminal__bar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px 24px; border-bottom: 1px solid #334155;
+  }
+  .story .terminal__dot { width: 16px; height: 16px; border-radius: 50%; }
+  .story .terminal__dot--r { background: #EF4444; }
+  .story .terminal__dot--y { background: #F59E0B; }
+  .story .terminal__dot--g { background: #10B981; }
+  .story .terminal__titulo {
+    margin-left: 10px;
+    font-family: 'Hasklig', 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
+    font-size: 0.85em; color: #9CA3AF; letter-spacing: 0.4px;
+  }
+  .story .terminal__body { padding: 24px 28px; }
+  .story .terminal__line {
+    font-family: 'Hasklig', 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
+    font-size: 0.92em; line-height: 1.6;
+    word-break: break-word; white-space: pre-wrap; color: #E5E7EB;
+  }
+  .story .terminal__line + .terminal__line { margin-top: 8px; }
+  .story .terminal__line .prompt { color: #10B981; font-weight: 700; }
+  .story .terminal__line--cmd { color: #F8FAFC; font-weight: 500; }
+  .story .terminal__line--out { color: #9CA3AF; }
+  .story .terminal__line--ok { color: #10B981; }
+  .story .terminal__line--err { color: #EF4444; }
+  .story .terminal__line--warn { color: #F59E0B; }
+  .btn-perfil {
+    margin-top: 70px;
+    padding: 30px 54px;
+    border: 3px solid var(--acento);
+    border-radius: 70px;
+    background: #000000;
+    font-size: 44px; font-weight: 800; color: #FFFFFF;
+    box-shadow: 0 0 34px var(--acento-rgba-30), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  .btn-perfil .verbo { color: var(--acento); }
   .pill {
     margin-top: 90px;
     padding: 26px 46px;
@@ -1202,7 +1883,9 @@ __links_fuentes__
   <div class="story">
     __isotipo__
     <div class="titulo">__titulo__</div>
-    <div class="pill">Más en el perfil</div>
+    __subtitulo__
+    __terminal__
+    <div class="btn-perfil"><span class="verbo">VER POST COMPLETO</span> EN EL PERFIL</div>
     <div class="marca-pie">__marca__</div>
   </div>
 </body>
@@ -1219,6 +1902,25 @@ def generar_story(input_dir: Path, display, resalte_hex, isotipo,
     html_src = fuente.read_text(encoding="utf-8")
     m = re.search(r'<div class="titulo">(.*?)</div>', html_src, re.DOTALL)
     titulo = m.group(1).strip() if m else _html_escape(display)
+    m_sub = re.search(r'<div class="cuerpo">(.*?)</div>', html_src, re.DOTALL)
+    subtitulo = ""
+    if m_sub and m_sub.group(1).strip():
+        subtitulo = (f'<div class="story-sub">{m_sub.group(1).strip()}</div>')
+    # Terminal con los primeros comandos reales del carrusel
+    terminal_html = ""
+    try:
+        import generar_copy_tech as _gct
+        cmds = _gct.extraer_comandos(input_dir)[:3]
+        if cmds:
+            props_term = {"titulo": "desde el carrusel",
+                          "lines": [{"t": "cmd", "v": c} for c in cmds]}
+            cuerpo_term, _u = expandir(
+                '<div class="componente" data-component="terminal" '
+                f"data-props='{json.dumps(props_term, ensure_ascii=False)}'>"
+                "</div>", {"accent": accent_vars["accent"]}, [])
+            terminal_html = cuerpo_term
+    except Exception:
+        terminal_html = ""
     rr, rg, rb = (int(resalte_hex.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4))
     brillo = f"#{min(255, int(rr + (255 - rr) * 0.45)):02x}" \
              f"{min(255, int(rg + (255 - rg) * 0.45)):02x}" \
@@ -1239,6 +1941,8 @@ def generar_story(input_dir: Path, display, resalte_hex, isotipo,
         "__resalte__": resalte_hex,
         "__resalte_brillo__": brillo,
         "__titulo__": titulo,
+        "__subtitulo__": subtitulo,
+        "__terminal__": terminal_html,
         "__isotipo__": (f'<img class="isotipo" src="{isotipo}" alt="{marca}">'
                         if isotipo else ""),
     }.items():
@@ -1256,10 +1960,29 @@ def _html_escape(t):
 
 # ── caption.txt ────────────────────────────────────────────────────
 
-def escribir_caption(output_dir, display_tema, cta_palabra, hashtags, marca):
+def escribir_caption(output_dir, display_tema, cta_palabra, hashtags, marca,
+                     modo="comentar", landing=None, landing2=None,
+                     landing2_texto=None):
+    if landing:
+        dom = _landing_dominio(landing)
+        extra2 = ""
+        if landing2:
+            dom2 = _landing_dominio(landing2)
+            txt2 = (landing2_texto or "Telegram").strip()
+            extra2 = f"\n{txt2}: {dom2}."
+        accion = (f"Empieza en {dom}: curso de Python completo y canal de "
+                  "Telegram para resolver dudas en comunidad."
+                  f"{extra2}\n"
+                  "Todos los comandos, en el primer comentario.")
+    elif (modo or "comentar") == "seguir":
+        accion = ("Síguenos para no perderte la próxima guía: cada semana "
+                  "un tema así, sin humo.\n"
+                  "Guarda este post y comenta qué tema quieres ver.")
+    else:
+        accion = (f"Comenta {cta_palabra} y te paso la checklist completa.")
     caption = (
         f"{display_tema}. Te lo cuento corto y directo.\n"
-        f"Comenta {cta_palabra} y te paso la checklist completa.\n\n"
+        f"{accion}\n\n"
         "Aviso: contenido educativo y defensivo. "
         "No sustituye una auditoría profesional.\n\n"
         f"{hashtags}\n"
@@ -1290,14 +2013,14 @@ def _slides_existentes(input_dir: Path):
 
 
 def _generar_slides_auto(input_dir, n, vertical, display, short, marca, slug,
-                         resalte=None):
+                         resalte=None, permitidos=None):
     """Escribe slide-*.html + story-fuente.html con el copywriting de la skill."""
     import generar_copy_tech as gct
     input_dir.mkdir(parents=True, exist_ok=True)
     print(f"  · Sin slide-*.html: generando copy ({n} slides, "
           f"vertical {vertical})...")
     plantillas, _textos, hook = gct.generar_slides(
-        slug, n, vertical, display, short, marca)
+        slug, n, vertical, display, short, marca, permitidos=permitidos)
     for numero, contenido in plantillas:
         path = input_dir / f"slide-{numero:02d}.html"
         path.write_text(
@@ -1334,22 +2057,68 @@ def main():
                     help="auto (default) o una categoría de icons/")
     ap.add_argument("--componentes", default="auto",
                     help="auto o lista blanca separada por coma (QA)")
+    ap.add_argument("--preset", default="mixto",
+                    choices=["repo", "comandos", "python", "mixto"],
+                    help="Receta de tipo de post: fija vertical + whitelist "
+                         "de componentes (default: mixto, sin forzar)")
+    ap.add_argument("--landing", default=None,
+                    help="URL propia (ej: https://chmodxcode.pro). Activa el "
+                         "cierre con landing: puente que invita a programar "
+                         "y slide final con dominio como CTA primario "
+                         "(los comandos siguen, en primer comentario)")
+    ap.add_argument("--landing2", default=None,
+                    help="Segunda URL del cierre (ej: canal de Telegram). "
+                         "Agrega un botón secundario en el slide final")
+    ap.add_argument("--landing2-texto", default=None,
+                    help="Texto del botón secundario (default: ÚNETE AL TELEGRAM)")
     ap.add_argument("--marca", default=MARCA_DEFECTO)
     ap.add_argument("--display-tema", default=None)
     ap.add_argument("--short-tema", default=None)
     ap.add_argument("--badge", default=None)
     ap.add_argument("--cta-palabra", default=None)
+    ap.add_argument("--cta-modo", default="seguir",
+                    choices=["comentar", "seguir"],
+                    help="comentar: botón 'Comenta X'; seguir: botón "
+                         "'SÍGUENOS' con gatillo de valor")
     ap.add_argument("--hashtags", default=None)
     ap.add_argument("--resalte", default=None,
                     help="Color de las keywords (default: el mismo --color)")
     ap.add_argument("--solo-story", action="store_true")
+    ap.add_argument("--solo-html", action="store_true",
+                    help="Escribe los HTML finales sin renderizar PNG ni copy")
+    ap.add_argument("--incremental", action="store_true",
+                    help="Salta los slides cuyo HTML no cambió (reusa PNG)")
+    ap.add_argument("--sin-autofit", action="store_true",
+                    help="No ajusta el zoom automáticamente; solo avisa recortes")
+    ap.add_argument("--workers", type=int, default=None,
+                    help="Chromium en paralelo (default: núcleos-1, máx 4)")
+    ap.add_argument("--contact-sheet", action="store_true",
+                    help="Genera contact-sheet.png con todo el carrusel")
+    ap.add_argument("--pdf", action="store_true",
+                    help="Exporta el carrusel completo a PDF")
+    ap.add_argument("--reel", action="store_true",
+                    help="Exporta un MP4 (requiere ffmpeg instalado)")
     ap.add_argument("--copy-redes", action="store_true",
                     help="Genera también copy-redes.md (IG/TikTok/FB/Story)")
+    ap.add_argument("--repo", default=None,
+                    help="URL del repo (va al primer comentario de copy-redes)")
+    ap.add_argument("--sin-guia", action="store_true",
+                    help="No inyecta la card funnel del slide 2")
+    ap.add_argument("--guia-titulo", default=None,
+                    help="Título de la card funnel del slide 2")
+    ap.add_argument("--guia-sub", default=None,
+                    help="Subtítulo de la card funnel del slide 2")
     ap.add_argument("--offline", action="store_true",
                     help="No enlaza Google Fonts: render con fuentes locales")
     ap.add_argument("--no-auto", action="store_true",
                     help="No escribe slide-*.html si faltan (falla con aviso)")
     args = ap.parse_args()
+
+    # ── Chromium en paralelo ──
+    if args.workers and args.workers > 0:
+        workers = min(args.workers, 8)
+    else:
+        workers = max(1, min(4, (os.cpu_count() or 2) - 1))
 
     # ── Color HEX (obligatorio, validado) ──
     try:
@@ -1387,6 +2156,16 @@ def main():
     aviso = _colors.avisar_contraste(resalte_hex)
     if aviso:
         print(f"  ! {aviso}")
+    # El acento se usa en palabras clave, bordes y el CTA: avisa si se
+    # apaga sobre el fondo del slide (basta AA-large 3:1).
+    try:
+        c_ac = _colors.contraste(hex_val, _colors.FONDO)
+        if c_ac < 3.0:
+            print(f"  ! Contraste bajo de --color {hex_val} sobre "
+                  f"{_colors.FONDO}: {c_ac:.1f}:1 (< 3:1). Prueba un tono "
+                  f"más claro para que el CTA y las keywords se lean en móvil.")
+    except Exception:  # noqa: BLE001 - nunca bloquea el render
+        pass
     rr, rg, rb = (int(resalte_hex.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4))
     resalte_vars = {
         "__resalte__": resalte_hex,
@@ -1399,6 +2178,15 @@ def main():
 
     # ── Vertical resuelta (auto → la decide el slug) ──
     vertical = None if args.vertical == "auto" else args.vertical
+
+    # ── Preset de tipo de post: vertical + set de componentes ──
+    if args.preset != "mixto":
+        receta = PRESETS[args.preset]
+        if args.vertical == "auto":
+            args.vertical = receta["vertical"]
+            vertical = receta["vertical"]
+        if (args.componentes or "auto") == "auto":
+            args.componentes = receta["componentes"]
 
     # ── Categoría de íconos ──
     from icons import CATEGORIAS as _CATS
@@ -1414,6 +2202,11 @@ def main():
 
     # ── Fuente: slide-*.html existentes, o se escriben solos ──
     vertical_copy = vertical or _MAPA_VERTICAL.get(cat, "cybersec")
+    permitidos_preset = None
+    if (args.componentes or "auto") != "auto":
+        permitidos_preset = {c.strip().lower()
+                             for c in re.split(r"[,\s]+", args.componentes)
+                             if c.strip()}
     slides = _slides_existentes(input_dir)
     if not slides:
         if args.no_auto:
@@ -1428,7 +2221,8 @@ def main():
                 f"--vertical {vertical_copy}")
         slides = _generar_slides_auto(input_dir, args.slides, vertical_copy,
                                       display, short, marca, tema_slug,
-                                      resalte=resalte_hex)
+                                      resalte=resalte_hex,
+                                      permitidos=permitidos_preset)
         if not slides:
             sys.exit(f"La auto-generación no escribió ningún slide en "
                      f"{input_dir}: revisá permisos de escritura.")
@@ -1471,6 +2265,11 @@ def main():
           f"Categoría {cat}")
     print(f"  Marca {marca}  ·  Resalte {resalte_hex}  ·  Badge {badge}  ·  "
           f"CTA {cta}")
+    if args.preset != "mixto":
+        print(f"  Preset {args.preset}  ·  Componentes {args.componentes}")
+    if args.landing:
+        print(f"  Landing {_landing_dominio(args.landing)}  ·  "
+              f"cierre enlaza al dominio propio")
     print(f"  Hashtags {hashtags}\n")
 
     if args.solo_story:
@@ -1488,6 +2287,19 @@ def main():
                       for c in re.split(r"[,\s]+", args.componentes) if c.strip()}
 
     warnings = []
+    try:
+        import generar_copy_tech as _gct
+        comandos_finales = _gct.extraer_comandos(input_dir)
+    except Exception:
+        comandos_finales = []
+    # Títulos de los slides de contenido (2..N-2) para el puente-recap
+    recap_titulos = []
+    try:
+        for src in slides[1:n - 2]:
+            recap_titulos.append(
+                _texto_titulo(parse_slide(src).get("body", "")))
+    except Exception:
+        recap_titulos = []
     for i, src in enumerate(slides, 1):
         data = parse_slide(src)
         slide_warnings = []
@@ -1496,7 +2308,16 @@ def main():
                             isotipo, marca,
                             icono=icono, badge=badge, cta_palabra=cta,
                             resalte_vars=resalte_vars, semilla=tema_slug,
-                            warnings=slide_warnings)
+                            warnings=slide_warnings,
+                            guia=not args.sin_guia,
+                            guia_titulo=args.guia_titulo,
+                            guia_sub=args.guia_sub,
+                            comandos_finales=comandos_finales,
+                            cta_modo=args.cta_modo,
+                            recap_titulos=recap_titulos,
+                            landing=args.landing,
+                            landing2=args.landing2,
+                            landing2_texto=args.landing2_texto)
         if permitidos is not None:
             for w in slide_warnings:
                 if "componente" in w and not any(
@@ -1517,31 +2338,72 @@ def main():
     print("\n  Midiendo títulos para la regla de keywords...")
     ajustar_claves_por_lineas(final_dir, nombres_html, fmt["w"], fmt["h"])
 
-    print("\n  Renderizando (uno a la vez)...")
-    preview = input_dir / "preview"
-    fallidos = [nombre for nombre in nombres_html
-                if not renderizar(final_dir / nombre, preview, fmt["w"], fmt["h"])]
-
-    print("\n  Verificando que nada quede recortado...")
-    recortes = chequear_overflow(final_dir, nombres_html, fmt["w"], fmt["h"])
-    if recortes:
-        print("  Avisos de recorte:")
-        for nombre, px in recortes:
-            if px < 0:
-                print(f"    ! {nombre}: no se pudo medir el recorte en Chromium.")
-            else:
-                print(f"    ! {nombre}: {px}px de contenido recortadas "
-                      f"(baja __comp_zoom__ o acorta el copy).")
+    # ── Auto-fit: baja el zoom del contenido hasta que nada recorte ──
+    if not args.sin_autofit:
+        print("\n  Auto-fit del contenido (mide y ajusta zoom)...")
+        sobra = autoajustar_recortes(final_dir, nombres_html, fmt["w"], fmt["h"],
+                                     workers=workers)
+        if sobra:
+            for nombre, px in sorted(sobra.items()):
+                print(f"    ! {nombre}: sigue recortando {px}px (piso de zoom "
+                      f"alcanzado; acorta el copy de ese slide).")
+        else:
+            print("  ✓ Sin recortes: todo el contenido cabe en el lienzo.")
     else:
-        print("  ✓ Sin recortes: todo el contenido cabe en el lienzo.")
+        print("\n  Verificando que nada quede recortado...")
+        recortes = chequear_overflow(final_dir, nombres_html, fmt["w"], fmt["h"],
+                                     workers=workers)
+        if recortes:
+            print("  Avisos de recorte:")
+            for nombre, px in recortes:
+                if px < 0:
+                    print(f"    ! {nombre}: no se pudo medir el recorte.")
+                else:
+                    print(f"    ! {nombre}: {px}px de contenido recortadas.")
+        else:
+            print("  ✓ Sin recortes: todo el contenido cabe en el lienzo.")
+
+    if args.solo_html:
+        print("\n  ✓ HTML listos (--solo-html: sin PNG, story ni copy).")
+        print(f"\n  Salida: {input_dir}")
+        return
+
+    print(f"\n  Renderizando ({workers} en paralelo)...")
+    preview = input_dir / "preview"
+    fallidos = renderizar_paralelo(
+        [final_dir / nombre for nombre in nombres_html], preview,
+        fmt["w"], fmt["h"], workers=workers, reusar=args.incremental)
+
+    if args.contact_sheet:
+        print("\n  Armando contact sheet...")
+        generar_contact_sheet(input_dir, nombres_html, fmt)
+    if args.pdf:
+        print("\n  Exportando PDF...")
+        exportar_pdf(input_dir, nombres_html, fmt)
+    if args.reel:
+        print("\n  Exportando reel MP4...")
+        exportar_reel(input_dir, nombres_html, fmt)
+
+    avisos_rep = qa_repeticion(input_dir, nombres_html)
+    if avisos_rep:
+        print("\n  ! QA de repetición:")
+        for a in avisos_rep:
+            print(f"    - {a}")
 
     generar_story(input_dir, display, resalte_hex, isotipo, accent_vars, marca)
-    escribir_caption(input_dir, display, cta, hashtags, marca)
+    escribir_caption(input_dir, display, cta, hashtags, marca,
+                     modo=args.cta_modo, landing=args.landing,
+                     landing2=args.landing2, landing2_texto=args.landing2_texto)
 
     if args.copy_redes:
         from generar_copy_tech import generar_copy_redes
         print("\n  Generando copy-redes.md...")
-        generar_copy_redes(input_dir, display, short, marca)
+        generar_copy_redes(input_dir, display, short, marca, cta_palabra=cta,
+                           repo=args.repo, vertical=cat,
+                           cta_modo=args.cta_modo,
+                           landing=args.landing,
+                           landing2=args.landing2,
+                           landing2_texto=args.landing2_texto)
 
     print(f"\n  Salida: {input_dir}")
     if fallidos:

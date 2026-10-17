@@ -153,7 +153,7 @@ VOSEO = {
     "guardá": "guarda", "contame": "cuéntame", "mirá": "mira",
     "tenés": "tienes", "querés": "quieres", "podés": "puedes",
     "hacé": "haz", "creé": "crea", "probá": "prueba", "usá": "usa",
-    "escribí": "escribe", "pensá": "piensa",
+    "escribí": "escribe", "pensá": "piensa", "fijá": "fija",
     "decí": "di", "agarrá": "agarra", "dejá": "deja", "poné": "pone",
     "traé": "trae", "pasá": "pasa", "seguí": "sigue",
 }
@@ -169,7 +169,7 @@ RITUALES = {
 
 _RE_VOSEO = re.compile(
     r"\b(guardá|contame|mirá|tenés|querés|podés|hacé|creé|probá|usá|"
-    r"escribí|pensá|decí|agarrá|dejá|poné|traé|seguí)\b", re.I)
+    r"escribí|pensá|fijá|decí|agarrá|dejá|poné|traé|seguí)\b", re.I)
 
 
 def corregir_dialecto(texto):
@@ -178,8 +178,7 @@ def corregir_dialecto(texto):
         return texto, 0
     original = texto
     for viejo, nuevo in {**VOSEO, **REGIONALISMOS, **RITUALES}.items():
-        if viejo.lower() in texto.lower():
-            texto = re.sub(re.escape(viejo), nuevo, texto, flags=re.I)
+        texto = re.sub(rf"\b{re.escape(viejo)}\b", nuevo, texto, flags=re.I)
     cambios = 1 if texto != original else 0
     return texto, cambios
 
@@ -190,12 +189,14 @@ def voseo_presente(texto):
 
 def regionalismos_presentes(texto):
     t = normalizar(texto or "")
-    return [k for k in REGIONALISMOS if normalizar(k) in t]
+    return [k for k in REGIONALISMOS
+            if re.search(rf"\b{re.escape(normalizar(k))}\b", t)]
 
 
 def rituales_presentes(texto):
     t = normalizar(texto or "")
-    return [k for k in RITUALES if normalizar(k) in t]
+    return [k for k in RITUALES
+            if re.search(rf"\b{re.escape(normalizar(k))}\b", t)]
 
 
 # ── QA de contenido educativo ──────────────────────────────────────

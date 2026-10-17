@@ -20,7 +20,10 @@ COBERTURA = (
         "titulo": "El error más común",
         "cuerpo": "Casi todos tratan el síntoma y no la causa: confiar en "
                   "validar sólo en el cliente o desactivar el check «por ahora».",
-        "componente": None,
+        "componente": {"tipo": "diff",
+                       "props": {"titulo": "Validación: cliente vs servidor",
+                                 "antes": "login(user_input)\n# confía en el formulario",
+                                 "despues": "if valido(user_input):\n    login(user_input)"}},
     },
     {
         "titulo": "Cómo se detecta",
@@ -71,20 +74,53 @@ COBERTURA = (
         "titulo": "Antes de la alerta, la revisión",
         "cuerpo": "Un repaso corto semanal de accesos y parches detecta más que "
                   "cualquier herramienta cara comprada por urgencia.",
-        "componente": None,
+        "componente": {"tipo": "quiz",
+                       "props": {"pregunta": "¿Qué revisas primero un lunes?",
+                                 "opciones": [
+                                     {"v": "Logs de accesos raros"},
+                                     {"v": "Parches pendientes", "ok": True},
+                                     {"v": "Nada, todo verde"}]}},
+    },
+    {
+        "titulo": "Así se ve un endpoint expuesto",
+        "cuerpo": "Sin token, sin rol, respuesta completa. Si tu API responde "
+                  "esto, el problema no es el atacante: es el diseño.",
+        "componente": {"tipo": "http",
+                       "props": {"metodo": "GET", "ruta": "/api/users/1",
+                                 "codigo": "200 OK", "nota_estado": "sin auth",
+                                 "response": '{\n  "id": 1,\n  "rol": "admin",\n  "email": "ceo@…"\n}'}},
     },
 )
 
 HOOKS = (
-    "Nadie audita esto hasta que falla",
+    "Tu API responde sin pedir permiso",
+    "El ataque ya probó tu endpoint",
     "Tu sistema confía demasiado en la entrada",
-    "El ataque empieza por una decisión tuya",
     "Lo que no se revisa, se explota",
+    "El log que ignoras es la pista",
     "Configurar bien cuesta menos que responder",
 )
 
 SUBHOOKS = (
-    "Ciberseguridad explicada en 7 ideas prácticas y aplicables hoy.",
-    "Defensa real: qué revisar, qué medir y qué ignorar.",
-    "Sin alarmismo: el panorama técnico, paso a paso.",
+    "Ciberseguridad en 7 ideas: qué revisar hoy mismo.",
+    "Defensa real con comandos y capas, sin alarmismo.",
+    "Del endpoint expuesto al checklist defensivo.",
+)
+
+# Portada: terminal con evidencia que duele (defensiva, de laboratorio).
+HOOK_COMPS = (
+    {"tipo": "terminal",
+     "props": {"titulo": "evidencia · lab propio",
+               "lines": [
+                   {"t": "cmd", "v": "curl -s https://api.demo.local/users/1"},
+                   {"t": "out", "v": "200 OK · perfil completo"},
+                   {"t": "warn", "v": "sin token, sin rol, sin límite"},
+                   {"t": "err", "v": "esto NO debería responder así"}]}},
+    {"tipo": "terminal",
+     "props": {"titulo": "escaneo · red propia",
+               "lines": [
+                   {"t": "cmd", "v": "nmap -sV 10.0.0.5"},
+                   {"t": "out", "v": "22/tcp open · 80/tcp open · 3306/tcp open"},
+                   {"t": "warn", "v": "base de datos visible desde fuera"},
+                   {"t": "ok", "v": "3 servicios que revisar hoy"}]}},
 )

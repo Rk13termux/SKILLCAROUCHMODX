@@ -55,7 +55,28 @@ BANCOS = {
     "devops": _infra,
 }
 
-MARCA_DEFECTO = "TechEdu"
+MARCA_DEFECTO = "CHMODX"
+
+
+def _landing_dominio(url):
+    """'https://chmodxcode.pro/' → 'chmodxcode.pro' (mismo criterio que builder)."""
+    d = (url or "").strip()
+    for pre in ("https://", "http://", "www."):
+        if d.lower().startswith(pre):
+            d = d[len(pre):]
+    return d.rstrip("/") or (url or "").strip()
+
+
+def _con_utm(url, red, campana=""):
+    """Enlace con UTM para medir de qué red viene el tráfico a la landing."""
+    if not url:
+        return ""
+    base = url.strip()
+    sep = "&" if "?" in base else "?"
+    q = f"utm_source={red}&utm_medium=carrusel"
+    if campana:
+        q += f"&utm_campaign={campana}"
+    return f"{base}{sep}{q}"
 
 _STOP = {
     "de", "la", "el", "los", "las", "y", "a", "con", "para", "como", "en",
@@ -142,7 +163,18 @@ def _slide_html(numero, contenido, pie, resalte=None):
 """
 
 
-def generar_slides(tema_slug, n, vertical, display, short, marca):
+def _norm_comp(tipo):
+    """Nombre canonico de componente (resuelve alias)."""
+    clave = (tipo or "").lower().strip()
+    try:
+        from components.base import ALIAS
+        return ALIAS.get(clave, clave)
+    except Exception:
+        return clave
+
+
+def generar_slides(tema_slug, n, vertical, display, short, marca,
+                   permitidos=None):
     banco = BANCOS.get(vertical, _cyber)
     cobertura = banco.COBERTURA
     textos = []
@@ -156,9 +188,28 @@ def generar_slides(tema_slug, n, vertical, display, short, marca):
         '      <div class="cuerpo">'
         f"{subhook}</div>"
     )
+    # Portada con gancho visual: 1 componente del banco (HOOK_COMPS) que
+    # el builder conserva tras título/subtítulo. Determinista por slug.
+    hook_comps = getattr(banco, "HOOK_COMPS", ())
+    if hook_comps:
+        hc = _elegir(tuple(hook_comps), tema_slug)
+        hc_props = _plantilla_props(hc.get("props", {}), display, short)
+        cover += (
+            '\n      <div class="componente" '
+            f'data-component="{hc.get("tipo", "terminal")}" '
+            f"data-props='{json.dumps(hc_props, ensure_ascii=False)}'></div>"
+        )
     slides_html.append((1, cover))
     textos.append(f"{hook} {subhook}")
 
+    if permitidos is not None:
+        permitidos = {_norm_comp(c) for c in permitidos}
+        # Preset primero: bloques con componente de la whitelist abren
+        # el carrusel (orden estable, determinista).
+        cobertura = tuple(sorted(
+            cobertura,
+            key=lambda b: 0 if (b.get("componente") and _norm_comp(
+                b["componente"].get("tipo")) in permitidos) else 1))
     ultimo_componente = None
     for i in range(2, n - 1):  # slides 2 .. N-2 (contenido)
         bloque = cobertura[(i - 2) % len(cobertura)]
@@ -166,6 +217,9 @@ def generar_slides(tema_slug, n, vertical, display, short, marca):
         comp = bloque["componente"]
         if comp and comp["tipo"] == ultimo_componente:
             comp = None
+        if comp and permitidos is not None:
+            if _norm_comp(comp.get("tipo")) not in permitidos:
+                comp = None  # preset: fuera de la whitelist
         titulo = _plantilla(bloque["titulo"], display, short)
         cuerpo = _plantilla(bloque["cuerpo"], display, short)
         cuerpo_corregido, _ = corregir_dialecto(cuerpo)
@@ -221,6 +275,8 @@ def _hashtags_con_emojis(short, display, slug):
         'python': ['🐍', '#python', '#programming', '#desarrollo', '#codigo'],
         'testing': ['🧪', '#testing', '#pytest', '#qa', '#unittest'],
         'pytest': ['🧪', '#pytest', '#testing', '#python', '#qa'],
+        'hermes': ['🤖', '#hermes', '#hermesagent', '#nousresearch', '#ai'],
+        'agent': ['🤖', '#aiagent', '#agents', '#automatizacion'],
         'prompt': ['🤖', '#prompt', '#ia', '#ai', '#llm', '#chatgpt'],
         'ia': ['🤖', '#ia', '#ai', '#llm', '#prompt'],
         'deploy': ['🚀', '#deploy', '#cicd', '#devops', '#github'],
@@ -237,51 +293,218 @@ def _hashtags_con_emojis(short, display, slug):
     return ' '.join(em[:2]) + '  ' + ' '.join(hs[:6])
 
 
-def generar_copy_redes(carpeta: Path, display, short, marca=None, funnel=False):
+"""Helpers nuevos de copy-redes: SEO, tags, comandos y primer comentario."""
+
+
+_EMOJI_VERTICAL = {
+    "cybersec": "🔒", "prog": "💻", "programming": "💻", "dev": "💻",
+    "ai": "🤖", "ia": "🤖", "infra": "🚀", "devops": "🚀", "tech": "💡",
+}
+
+_TAGS_VERTICAL = {
+    "cybersec": ["#cybersec", "#seguridad", "#infosec"],
+    "prog": ["#programacion", "#codigo", "#dev"],
+    "programming": ["#programacion", "#codigo", "#dev"],
+    "dev": ["#programacion", "#codigo", "#dev"],
+    "ai": ["#ia", "#ai", "#llm"],
+    "ia": ["#ia", "#ai", "#llm"],
+    "infra": ["#devops", "#infraestructura", "#linux"],
+    "devops": ["#devops", "#infraestructura", "#linux"],
+    "tech": ["#tech", "#tutorial"],
+}
+
+_STOP_SEO = {
+    "de", "la", "el", "los", "las", "una", "unos", "unas", "este", "esta",
+    "estos", "estas", "para", "como", "con", "por", "sin", "sobre", "entre",
+    "que", "los", "del", "al", "una", "más", "muy", "todo", "toda", "este",
+    "guia", "guía", "instalacion", "instalación", "introduccion", "curso",
+}
+
+
+def _seo_keywords(display, short, slug, tope=5):
+    """Palabras clave significativas para títulos, descripciones y tags."""
+    import unicodedata
+    vistas = []
+    for fuente in (display or "", short or "", (slug or "").replace("-", " ")):
+        for w in re.findall(r"[A-Za-zÁÉÍÓÚáéíóúÑñ]{4,}", fuente):
+            norm = "".join(c for c in unicodedata.normalize("NFKD", w.lower())
+                           if not unicodedata.combining(c))
+            if norm not in _STOP_SEO and norm not in vistas:
+                vistas.append(norm)
+    # Primero las del short (más específicas), luego display/slug
+    cortas = [w for w in re.findall(r"[A-Za-zÁÉÍÓÚáéíóúÑñ]{4,}", short or "")]
+    cortas = ["".join(c for c in unicodedata.normalize("NFKD", w.lower())
+                      if not unicodedata.combining(c)) for w in cortas]
+    orden = [w for w in cortas if w in vistas]
+    orden += [w for w in vistas if w not in orden]
+    return orden[:tope]
+
+
+def _tagify(palabra):
+    limpio = re.sub(r"[^a-z0-9]", "", (palabra or "").lower())
+    return f"#{limpio}" if limpio else ""
+
+
+def _tags(cantidad, kws, vertical, slug):
+    """Hashtags exactos y deterministas: keywords + vertical + marca."""
+    tags = []
+    for kw in (kws or []):
+        t = _tagify(kw)
+        if t and t not in tags:
+            tags.append(t)
+    for t in _TAGS_VERTICAL.get((vertical or "tech").lower(), ["#tech"]):
+        if t not in tags:
+            tags.append(t)
+    for t in ("#chmodx", "#tutorial", "#aprende", "#guia", "#tips",
+              "#tech"):
+        if len(tags) >= cantidad:
+            break
+        if t not in tags:
+            tags.append(t)
+    return " ".join(tags[:cantidad])
+
+
+def extraer_comandos(carpeta, tope=12):
+    """Comandos `cmd` de los terminales fuente, únicos y en orden."""
+    cmds = []
+    for p in sorted(Path(carpeta).glob("slide-*.html")):
+        try:
+            texto = p.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for m in re.finditer(r'\{"t":\s*"cmd",\s*"v":\s*"((?:[^"\\]|\\.)*)"\}',
+                             texto):
+            cmd = m.group(1).replace('\\"', '"').replace("\\n", " ").strip()
+            if cmd and cmd not in cmds:
+                cmds.append(cmd)
+            if len(cmds) >= tope:
+                return cmds
+    return cmds
+
+
+def _primer_comentario(short, cta, comandos, repo, marca,
+                       cierre=None, landing=None, landing2=None,
+                       landing2_texto=None, campana=""):
+    lineas = []
+    if landing:
+        lineas.append(f"🚀 Primero: {_con_utm(landing, 'instagram', campana)}")
+        linea2 = ""
+        if landing2:
+            txt2 = (landing2_texto or "Telegram").strip()
+            linea2 = f" · {txt2}: {_con_utm(landing2, 'instagram', campana)}"
+        lineas += [
+            "Curso de Python completo + canal de Telegram para resolver "
+            "dudas en comunidad." + linea2,
+            "",
+        ]
+    lineas += [
+        f"📌 Comandos de «{short}» — cópialos y úsalos:",
+        "",
+    ]
+    if comandos:
+        lineas.append("```")
+        lineas.extend(comandos)
+        lineas.append("```")
+        lineas.append("")
+    else:
+        lineas.append("Todos los comandos están en las imágenes del carrusel.")
+        lineas.append("")
+    if repo:
+        lineas.append(f"🔗 Repo oficial: {repo}")
+        lineas.append("")
+    lineas += [cierre or f"Comenta {cta} y te paso la checklist completa."]
+    return "\n".join(lineas)
+
+
+def generar_copy_redes(carpeta: Path, display, short, marca=None, funnel=False,
+                       cta_palabra=None, repo=None, vertical="tech", cta_modo="seguir",
+                       landing=None, landing2=None, landing2_texto=None):
     slug = carpeta.name
-    cta = resolver_cta_palabra(slug)
+    cta = resolver_cta_palabra(slug, forzado=cta_palabra)
     marca = (marca or MARCA_DEFECTO).strip() or MARCA_DEFECTO
-    hashtag_base = "#" + re.sub(r"[^a-z0-9]", "", short.lower() or "tech")
+    dom = _landing_dominio(landing) if landing else ""
+    dom2 = _landing_dominio(landing2) if landing2 else ""
+    txt2 = (landing2_texto or "Telegram").strip()
+    emo = _EMOJI_VERTICAL.get((vertical or "tech").lower(), "💡")
+    kws = _seo_keywords(display, short, slug)
+    kw1 = (kws[0] if len(kws) > 0 else short).capitalize()
+    kw2 = (kws[1] if len(kws) > 1 else "guía práctica").capitalize()
+    kw3 = kws[2] if len(kws) > 2 else "paso a paso"
+    comandos = extraer_comandos(carpeta)
+    seguir = (cta_modo or "comentar") == "seguir"
+    if seguir:
+        linea_cta_ig = ("Síguenos para no perderte la próxima guía: cada "
+                        "semana un tema así, sin humo.")
+        linea_cta_tt = "Síguenos: cada semana una guía así."
+        cierre_comentario = (f"💬 Síguenos y dime qué tema quieres ver "
+                             f"después. — {marca}")
+    else:
+        linea_cta_ig = f"Comenta {cta} y te paso la checklist completa."
+        linea_cta_tt = f"Comenta {cta} y te mando la checklist."
+        cierre_comentario = (f"💬 ¿Qué te pareció el post? Cuéntame qué tema "
+                             f"quieres ver después.\n"
+                             f"Comenta {cta} y te paso la checklist completa. "
+                             f"— {marca}")
+    if dom:
+        # Landing primero: gana jerarquía sobre el CTA genérico.
+        linea_landing_ig = (f"Empieza en {dom}: curso de Python completo y "
+                            "canal de Telegram para resolver dudas.")
+        linea_landing_tt = f"Empieza en {dom} — curso y Telegram."
+        linea_landing_fb = (f"Empieza en {dom}: curso de Python completo y "
+                            "canal de Telegram.")
+        if dom2:
+            linea_landing_ig = (f"Empieza en {dom}: curso de Python completo. "
+                                f"{txt2}: {dom2}.")
+            linea_landing_tt = f"Empieza en {dom} — curso y {txt2}."
+            linea_landing_fb = (f"Empieza en {dom}: curso de Python completo. "
+                                f"{txt2}: {dom2}.")
+        linea_cta_ig = f"{linea_landing_ig} {linea_cta_ig}"
+        linea_cta_tt = f"{linea_landing_tt} {linea_cta_tt}"
+        # El primer comentario ya abre con la landing: el cierre no la repite.
 
-    ig = (
-        f"{short} se explica en una frase y se aplica en tres.\n"
-        f"En este carrusel: qué es, cómo se detecta el error típico y la "
-        f"checklist para revisarlo hoy mismo.\n"
-        f"Guardalo: vuelve a servirte la primera vez que te atore con esto.\n"
-        f"Compartilo con quien está aprendiendo lo mismo.\n"
-        f"¿Cuál de estos puntos ya lo tenías cubierto?\n"
-        f"Comenta {cta} y te paso la checklist completa.\n"
+    ig_titulo = f"{emo} {short} sin humo: guía completa"
+    ig_desc = (
+        f"{emo} {display}: guía completa en un carrusel.\n"
+        f"Comandos reales, errores típicos y checklist aplicable hoy. ✨\n"
+        f"Ideal para devs, estudiantes y curiosos de {kw2}.\n"
+        f"Si trabajas con {kw1}, guarda este post: vuelve a servirte cuando "
+        f"lo necesites. 📌\n"
+        f"Compártelo con tu equipo. 💬 ¿Qué punto aplicas primero?\n"
+        f"{linea_cta_ig}\n"
         f"— {marca}"
     )
     if funnel:
-        ig += "\nGuía completa en el enlace del perfil."
+        ig_desc += "\nGuía completa en el enlace del perfil."
 
-    tt = (
-        f"{short}: lo que casi nadie revisa.\n"
-        f"El detalle está en la configuración, no en la herramienta.\n"
-        f"keywords: {short} · seguridad · buenas prácticas\n"
-        f"Comenta {cta} y te paso la checklist por DM.\n"
+    tt_titulo = f"{emo} {short} en 30 segundos"
+    tt_desc = (
+        f"{emo} {kw1} explicado rápido: {kw2} y {kw3} sin rodeos.\n"
+        f"Mira el carrusel completo en IG. 💬\n"
+        f"Guarda y comparte con quien programa.\n"
+        f"{linea_cta_tt}\n"
         f"— {marca}"
     )
     if funnel:
-        tt += "\nGuía en el perfil."
+        tt_desc += "\nGuía en el perfil."
 
-    fb = (
-        f"En las imágenes: una guía breve sobre {short}. "
-        f"El post recorre la definición, el error más común y una checklist "
-        f"de cuatro puntos para aplicarla hoy.\n"
-        f"Este carrusel está pensado para quien necesita resolver esto sin "
-        f"perder una tarde entera en documentación dispersa.\n"
-        f"Si te resultó útil, compártelo con tu equipo.\n"
+    fb_titulo = f"{emo} Guía completa: {short}"
+    fb_desc = (
+        f"{emo} En las imágenes: {display}, explicado {kw3}.\n"
+        f"El post recorre {kw1}, el error más común con {kw2} y una checklist "
+        f"de cuatro puntos para aplicarla hoy mismo. ✨\n"
+        f"Pensado para quien necesita resolver esto sin perder una tarde en "
+        f"documentación dispersa. Si te sirve, compártelo con tu equipo. 📌\n"
+        + (f"{linea_landing_fb}\n" if dom else "") +
+        f"💬 Cuéntame en comentarios qué te pareció y qué tema sigue.\n"
         f"— {marca}"
     )
 
-    story = short.upper()[:60]
+    story = f"{emo} {short.upper()[:54]}"
 
     bloques = [
-        ("Instagram", ig, PRESUPUESTO["Instagram"]),
-        ("TikTok", tt, PRESUPUESTO["TikTok"]),
-        ("Facebook", fb, PRESUPUESTO["Facebook"]),
+        ("Instagram", ig_desc, PRESUPUESTO["Instagram"]),
+        ("TikTok", tt_desc, PRESUPUESTO["TikTok"]),
+        ("Facebook", fb_desc, PRESUPUESTO["Facebook"]),
     ]
 
     filas = []
@@ -292,7 +515,7 @@ def generar_copy_redes(carpeta: Path, display, short, marca=None, funnel=False):
         estado = "OK" if ok else "FUERA DE RANGO"
         if not ok:
             problemas.append(f"{nombre}: {palabras} palabras (esperado "
-                             f"{minimo}-{maximo})")
+                             f"{minimo}-{maximo}")
         filas.append(f"| {nombre} | {palabras} | {estado} |")
 
     # QA de dialecto y responsabilidad sobre TODO el copy
@@ -308,7 +531,10 @@ def generar_copy_redes(carpeta: Path, display, short, marca=None, funnel=False):
         "",
         f"- Slug: `{slug}`",
         f"- Palabra CTA (misma que el Slide N): **{cta}**",
+        f"- Keywords SEO: {', '.join(kws) if kws else short}",
         f"- Dialecto: tuteo-latam-neutro",
+        *([f"- Landing: {landing}"] if dom else []),
+        *([f"- Landing 2: {landing2}"] if dom2 else []),
         "",
         "## QA",
         "",
@@ -322,28 +548,75 @@ def generar_copy_redes(carpeta: Path, display, short, marca=None, funnel=False):
         f"- Contenido responsable: {'OK' if not resp else 'REVISAR: ' + ', '.join(resp)}",
         f"- Cifras a verificar: {', '.join(pct) if pct else 'ninguna'}",
         "",
-        "## Instagram",
+        "## Instagram 📸 — título + descripción + 9 hashtags",
         "",
-        ig,
+        f"**Título:** {ig_titulo}",
         "",
-        "## TikTok",
+        "**Descripción:**",
         "",
-        tt,
+        ig_desc,
         "",
-        "## Facebook",
+        f"**Hashtags:** {_tags(9, kws, vertical, slug)}",
         "",
-        fb,
+        "## TikTok 🎵 — título + descripción + 5 hashtags",
+        "",
+        f"**Título:** {tt_titulo}",
+        "",
+        "**Descripción:**",
+        "",
+        tt_desc,
+        "",
+        f"**Hashtags:** {_tags(5, kws, vertical, slug)}",
+        "",
+        "## Facebook 📘 — título + descripción + 5 hashtags",
+        "",
+        f"**Título:** {fb_titulo}",
+        "",
+        "**Descripción:**",
+        "",
+        fb_desc,
+        "",
+        f"**Hashtags:** {_tags(5, kws, vertical, slug)}",
         "",
         "## Story (titular en mayúsculas)",
         "",
         story,
         "",
-        "## Primer comentario sugerido",
+        "## 📌 Primer comentario (fíjalo)",
         "",
-        f"Fijá este comentario: «La checklist completa está en el carrusel. "
-        f"Comenta {cta} y la mando por DM.»",
+        _primer_comentario(short, cta, comandos, repo, marca,
+                           cierre=cierre_comentario, landing=landing,
+                           landing2=landing2, landing2_texto=landing2_texto,
+                           campana=slug),
         "",
-        "## Hashtags recomendados",
+        *(["## 🔗 Enlaces con UTM (bio / story / comentario)", "",
+           "Copia el que corresponda a cada red para medir de dónde viene "
+           "el tráfico:",
+           "",
+           f"- Instagram: {_con_utm(landing, 'instagram', slug)}",
+           *([f"- Telegram (IG): {_con_utm(landing2, 'instagram', slug)}"]
+             if dom2 else []),
+           f"- TikTok: {_con_utm(landing, 'tiktok', slug)}",
+           f"- Facebook: {_con_utm(landing, 'facebook', slug)}",
+           ""] if dom else []),
+        "## 📅 Plan de publicación sugerido",
+        "",
+        "- **Día 1 (lanzamiento) · 19:00–21:00:** publica en Instagram (feed) y "
+        "comparte la story con sticker de enlace. Fija el primer comentario con "
+        "los comandos.",
+        "- **Día 1 · 21:30:** sube el mismo carrusel a TikTok con el copy corto "
+        "(la landing va en la bio).",
+        "- **Día 2 · 12:00–13:00:** Facebook (mejor alcance a mediodía). "
+        "Enlaza con UTM de Facebook.",
+        "- **Día 4:** republica la story con la diapositiva del CTA final y "
+        "responde dudas en comentarios (sube el alcance).",
+        "- **Día 7:** repostea la portada como reel corto si el post superó "
+        "el promedio de guardados.",
+        "",
+        "> Ajustá las horas a la analítica de tu cuenta (revisá ``Insights → "
+        "Público → Horas más activas``).",
+        "",
+        "## Hashtags recomendados (todas las redes)",
         "",
         _hashtags_con_emojis(short, display, slug),
         "",
@@ -358,6 +631,7 @@ def generar_copy_redes(carpeta: Path, display, short, marca=None, funnel=False):
         print("  ! QA de dialecto: revisar voseo/regionalismos/rituales.")
     if resp:
         print(f"  ! Contenido responsable: {resp}")
+
 
 
 # ── main ───────────────────────────────────────────────────────────
@@ -376,6 +650,15 @@ def main():
     ap.add_argument("--short-tema", default=None)
     ap.add_argument("--marca", default=MARCA_DEFECTO)
     ap.add_argument("--funnel", action="store_true")
+    ap.add_argument("--repo", default=None)
+    ap.add_argument("--landing", default=None,
+                    help="URL propia (ej: https://chmodxcode.pro): se coloca "
+                         "primero en descripciones y primer comentario")
+    ap.add_argument("--landing2", default=None,
+                    help="Segunda URL del cierre (ej: canal de Telegram)")
+    ap.add_argument("--landing2-texto", default=None,
+                    help="Texto que acompaña a la segunda URL")
+    ap.add_argument("--cta-palabra", default=None)
     args = ap.parse_args()
 
     ct = resolver_ctslider()
@@ -386,7 +669,11 @@ def main():
             sys.exit(f"No existe la carpeta: {carpeta}")
         display = args.display_tema or args.carpeta.replace("-", " ").title()
         short = args.short_tema or display
-        generar_copy_redes(carpeta, display, short, funnel=args.funnel)
+        generar_copy_redes(carpeta, display, short, funnel=args.funnel,
+                           cta_palabra=args.cta_palabra, repo=args.repo,
+                           vertical=args.vertical, landing=args.landing,
+                           landing2=args.landing2,
+                           landing2_texto=args.landing2_texto)
         return
 
     if not args.tema:

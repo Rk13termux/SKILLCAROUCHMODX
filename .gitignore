@@ -1,4 +1,3 @@
 __pycache__/
-*.py[cod]
+*.pyc
 .pytest_cache/
-screenshot.png

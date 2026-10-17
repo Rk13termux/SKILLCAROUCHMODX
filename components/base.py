@@ -16,7 +16,8 @@ import re
 
 def extraer_componente(body: str):
     """Devuelve (body_sin_componente, nombre, props) o (body, None, None)."""
-    m = re.search(r'<div\s+class="componente"([^>]*)>', body)
+    m = re.search(r'<div\s+class="componente"((?:[^>"\']|"[^"]*"|\'[^\']*\')*)>',
+                  body)
     if not m:
         return body, None, None
     inicio = m.start()
@@ -102,9 +103,99 @@ def _code(p, ctx):
     return render(p, ctx)
 
 
+def _editor(p, ctx):
+    from .code_block import render_editor
+    return render_editor(p, ctx)
+
+
+def _gh_stats(p, ctx):
+    from .gh_stats import render
+    return render(p, ctx)
+
+
+def _diff(p, ctx):
+    from .code_block import render_diff
+    return render_diff(p, ctx)
+
+
+def _tree(p, ctx):
+    from .tree import render
+    return render(p, ctx)
+
+
+def _http(p, ctx):
+    from .http_api import render
+    return render(p, ctx)
+
+
+def _browser(p, ctx):
+    from .http_api import render_browser
+    return render_browser(p, ctx)
+
+
+def _stats(p, ctx):
+    from .panels import render_stats
+    return render_stats(p, ctx)
+
+
+def _tabla(p, ctx):
+    from .panels import render_tabla
+    return render_tabla(p, ctx)
+
+
+def _layers(p, ctx):
+    from .panels import render_layers
+    return render_layers(p, ctx)
+
+
+def _pipeline(p, ctx):
+    from .panels import render_pipeline
+    return render_pipeline(p, ctx)
+
+
+def _faq(p, ctx):
+    from .graphic import render_faq
+    return render_faq(p, ctx)
+
+
+def _quote(p, ctx):
+    from .graphic import render_quote
+    return render_quote(p, ctx)
+
+
+def _quiz(p, ctx):
+    from .graphic import render_quiz
+    return render_quiz(p, ctx)
+
+
+def _qr(p, ctx):
+    from .qr import render
+    return render(p, ctx)
+
+
 def _social(p, ctx):
     from .social_card import render
     return render(p, ctx)
+
+
+def _stack(p, ctx):
+    from .extra import render_stack
+    return render_stack(p, ctx)
+
+
+def _error(p, ctx):
+    from .extra import render_error
+    return render_error(p, ctx)
+
+
+def _timeline(p, ctx):
+    from .extra import render_timeline
+    return render_timeline(p, ctx)
+
+
+def _index(p, ctx):
+    from .extra import render_index
+    return render_index(p, ctx)
 
 
 RENDERIZADORES = {
@@ -115,9 +206,27 @@ RENDERIZADORES = {
     "diagram": _diagram,
     "pasos": _pasos,
     "code": _code,
+    "editor": _editor,
+    "gh-stats": _gh_stats,
     "checklist": _checklist,
     "mitos": _mitos,
     "social": _social,
+    "tree": _tree,
+    "http": _http,
+    "browser": _browser,
+    "diff": _diff,
+    "stats": _stats,
+    "tabla": _tabla,
+    "layers": _layers,
+    "pipeline": _pipeline,
+    "faq": _faq,
+    "quote": _quote,
+    "quiz": _quiz,
+    "qr": _qr,
+    "stack-tec": _stack,
+    "error": _error,
+    "timeline-fases": _timeline,
+    "indice": _index,
 }
 
 ALIAS = {
@@ -133,9 +242,58 @@ ALIAS = {
     "timeline": "pasos",
     "codigo": "code",
     "snippet": "code",
+    "editor-codigo": "editor",
+    "ide": "editor",
+    "vscode": "editor",
+    "python": "editor",
+    "py-editor": "editor",
+    "github": "gh-stats",
+    "repo-stats": "gh-stats",
+    "estrellas": "gh-stats",
+    "codigo-qr": "qr",
+    "qrcode": "qr",
+    "qr-code": "qr",
+    "tecnologias": "stack-tec",
+    "tech-stack": "stack-tec",
+    "traza": "error",
+    "traceback": "error",
+    "fallo": "error",
+    "roadmap": "timeline-fases",
+    "ruta": "timeline-fases",
+    "fases": "timeline-fases",
+    "tabla-contenidos": "indice",
+    "toc": "indice",
     "takeaways": "checklist",
     "myth": "mitos",
     "card": "social",
+    "arbol": "tree",
+    "filesystem": "tree",
+    "git-tree": "tree",
+    "ramas": "tree",
+    "api": "http",
+    "api-block": "http",
+    "request": "http",
+    "endpoint": "http",
+    "web": "browser",
+    "ventana": "browser",
+    "antes-despues": "diff",
+    "before-after": "diff",
+    "metricas": "stats",
+    "kpi": "stats",
+    "numeros": "stats",
+    "capas": "layers",
+    "stack": "layers",
+    "pila": "layers",
+    "ci": "pipeline",
+    "stages": "pipeline",
+    "deploy-flow": "pipeline",
+    "table": "tabla",
+    "comparativa": "tabla",
+    "preguntas": "faq",
+    "cita": "quote",
+    "frase": "quote",
+    "test-rapido": "quiz",
+    "pregunta": "quiz",
 }
 
 

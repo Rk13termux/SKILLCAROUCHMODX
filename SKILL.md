@@ -1,6 +1,6 @@
 ---
 name: tech-carousel
-description: Use when the user asks to create professional Instagram carousel slides for tech education (cybersecurity, programming, AI) with tech_carousel.py in the skill folder and /mnt/sdcard/CTSLIDER — requires HEX accent color and slide count. High-value components: terminal, cards, comparative, repo, diagrams, code blocks. Icon library auto-selected by vertical.
+description: Use when the user asks to create professional Instagram carousel slides for tech education (cybersecurity, programming, AI, infra) with tech_carousel.py in this skill folder — requires HEX accent color and slide count. Writes copy + HTML + PNG into the CTSLIDER work folder (/sdcard/CTSLIDER, override with CTSLIDER_DIR). 23 components: terminal, cards, compare, repo, diagrams, code, editor, tree, http, diff, stats, layers, pipeline, tabla, faq, quote, quiz and more. Icon library auto-selected by vertical.
 ---
 
 # Crear Carousel Tech (Ciberseguridad · Programación · IA)
@@ -9,9 +9,9 @@ Genera un carrusel de Instagram completo (copywriting + HTML + componentes gráf
 
 Funciona con CUALQUIER tema técnico y CUALQUIER cantidad de slides (7 a 10 recomendados, mínimo 3).
 
-**Identidad:** `TechEdu`. Marca configurable con `--marca`.
+**Identidad:** `CHMODX`. Marca configurable con `--marca`.
 
-## Ideología (TechEdu · educativo · sin censura responsable)
+## Ideología (CHMODX · educativo · sin censura responsable)
 
 - **Educativo primero.** Cada slide explica qué es, por qué importa y cómo aplicarlo (mínimo 1 aplicación práctica por bloque).
 - **Técnico y preciso.** Terminología correcta, sin hype ni promesas vacías. Cero datos inventados: si no es verificable, no se publica.
@@ -22,6 +22,35 @@ Funciona con CUALQUIER tema técnico y CUALQUIER cantidad de slides (7 a 10 reco
 - **Alto valor.** 1 idea útil y aplicable por slide.
 
 Verticales: `cybersec` (blue/red team, appsec, cloudsec, zero trust) · `prog` (fundamentos, patrones, arquitectura, testing) · `ai` (LLMs, RAG, agentes, evals, seguridad IA) · `infra` (redes, Linux, contenedores, CI/CD, SRE).
+
+## Brief inicial (obligatorio, siempre antes de empezar)
+
+Nunca empieces un carrusel sin este brief. Pregunta con la herramienta de
+preguntas (multi-selección donde aplique) y recién después ejecuta:
+
+**P1 — Tipo de post** (uno; define `--preset` y el contexto de todo el copy):
+
+| Tipo | `--preset` | Vertical | Set de componentes |
+|---|---|---|---|
+| Repo de GitHub | `repo` | prog | `card-repo, gh-stats, tree, code, terminal` |
+| Enseñar comandos | `comandos` | infra | `terminal, tabla, code, checklist, quiz` |
+| Código Python | `python` | prog | `editor, code, terminal, diff, quiz` |
+| Mixto / otro | `mixto` | auto | auto (banco del vertical) |
+
+**P2 — Tema + color + slides** (los 3 obligatorios de siempre; el color y los
+slides nunca se deducen).
+
+**P3 — Componentes** (multi-selección; default: el set del preset elegido;
+`auto` = banco completo del vertical).
+
+**P4 — Extras**: formato (default 9:16), `--repo` URL (obligatorio para preset
+`repo`: va al primer comentario), `--landing` URL propia (opcional: cierra el
+carrusel hacia tu dominio/landing en vez de "síguenos"), `--copy-redes`,
+`--marca` (default CHMODX).
+
+Sin `--preset`, el banco del vertical decide los componentes (modo `mixto`).
+Con `--preset`, la auto-generación filtra el banco a la whitelist y el builder
+avisa si un slide manual usa un componente fuera de la lista.
 
 ## Entrada del usuario (4 datos)
 
@@ -37,7 +66,7 @@ Si falta color, slides o tema, preguntá con AskUserQuestion antes de empezar. *
 ## CLI
 
 ```bash
-python3 ~/.claude/skills/tech-carousel/tech_carousel.py \
+python3 ~/.config/opencode/skills/tech-carousel/tech_carousel.py \
   --tema <slug-del-tema> \
   --color "#RRGGBB" \
   --slides 8 \
@@ -56,9 +85,23 @@ python3 ~/.claude/skills/tech-carousel/tech_carousel.py \
 | `--vertical` | no | `auto` (default: se deduce del slug) o fijo `cybersec\|prog\|ai\|infra` |
 | `--iconos` | no | `auto` (default) o `--iconos <categoria>` |
 | `--componentes` | no | `auto` (default) o lista fijada `terminal,card-compare` |
-| `--marca` | no | Marca del pie (default `TechEdu`) |
+| `--preset` | no | `repo` · `comandos` · `python` · `mixto` (default: receta tipo de post) |
+| `--marca` | no | Marca del pie (default `CHMODX`) |
 | `--badge` | no | Texto del badge de portada |
 | `--cta-palabra` | no | Palabra del CTA (default: determinista desde el slug) |
+| `--cta-modo` | no | `seguir` (default: botón negro con borde de acento "SÍGUENOS Y NO TE PIERDAS LO QUE SIGUE" + copy de valor) o `comentar` (botón 'Comenta X') |
+| `--repo` | no | URL del repo (va al primer comentario de copy-redes) |
+| `--landing` | no | URL propia (ej `https://chmodxcode.pro`). Activa el **cierre con landing**: slide N-1 empuja a programar + mini-card del dominio, slide N muestra el dominio gigante como CTA primario (los comandos siguen presentes, en línea secundaria hacia el primer comentario), y caption/copy-redes/primer comentario arrancan con el enlace |
+| `--landing2` / `--landing2-texto` | no | Segunda URL del cierre (ej canal de Telegram). Agrega un **botón secundario** (borde punteado) en el slide final y una línea extra en caption/copy/primer comentario |
+| `--workers` | no | Chromium en paralelo (default: núcleos-1, máx 4). Baja un carrusel de ~1m/slide a ~15s/slide |
+| `--solo-html` | no | Escribe los HTML + auto-fit **sin** renderizar PNG, story ni copy (iterar en segundos) |
+| `--incremental` | no | Salta los slides cuyo HTML no cambió (hash en `preview/.hashes.json`) y reusa sus PNG |
+| `--sin-autofit` | no | No ajusta el zoom automáticamente; sólo avisa los recortes |
+| `--contact-sheet` | no | Genera `contact-sheet.png` (grilla con todo el carrusel, revisión de un vistazo) |
+| `--pdf` | no | Exporta el carrusel completo a PDF (una página por slide) |
+| `--reel` | no | Exporta un MP4 vertical con ffmpeg (si está instalado) |
+| `--sin-guia` | no | No inyecta la card funnel del slide 2 |
+| `--guia-titulo` / `--guia-sub` | no | Personalizan la card funnel del slide 2 |
 | `--resalte` | no | Color de keywords (default: **el mismo `--color`**) |
 | `--short-tema` / `--display-tema` | no | Tema corto (títulos) / legible (caption) |
 | `--hashtags` | no | `a,b,c` |
@@ -78,17 +121,17 @@ El builder imprime en la cabecera: `Color`, `Slides`, `Vertical`, `Íconos`, `Re
 | Pasos | **1**: `tech_carousel.py` hace copy → HTML → render → verificación | **2**: `generar_carousel_ab.py` para los PNGs, después `crear-audio` para el audio |
 | Temas | Técnico (cybersec, prog, IA, infra) | Psicología / desarrollo personal (AudioBlaze) |
 | Componentes | terminal, code, diagrama, card-compare, card-repo, checklist, mitos, pasos, social, card-info | texto + iconos SVG por tema |
-| Marca | `TechEdu` (`--marca`) | AudioBlaze |
+| Marca | `CHMODX` (`--marca`) | AudioBlaze |
 
 Usá **`tech-carousel`** si el tema es técnico. Usá **`crear-carousel`** si es para AudioBlaze. No las mezcles: los estilos, paletas y estructuras son distintos.
 
 
 ## Estructura viral de 7-10 slides (requerida)
 
-1. **Slide 1 (Portada/Hook):** título MÁXIMO 8 palabras (tensión técnica legítima, no engañosa) + subtítulo MÁXIMO 2 líneas.
+1. **Slide 1 (Portada/Hook):** título MÁXIMO 8 palabras (tensión técnica legítima, no engañosa) + subtítulo MÁXIMO 2 líneas + **1 componente gancho** (terminal con evidencia por default, desde `HOOK_COMPS` de cada vertical en `copywriting/`). La portada es el slide más importante: es lo que frena el scroll y decide si guardan el post. El builder conserva el componente tras el subtítulo (ver `generar_html()` rama `i == 1`).
 2. **Slides 2..N-2 (Contenido de valor):** MÁXIMO 3 líneas de texto por slide (40-50 palabras), 1 idea clara. Usá `.clave` en 1-2 keywords. Concepto largo → dividiólo en 2 slides.
-3. **Slide N-1 (Puente):** el script inyecta un concepto técnico real ("El fallo casi siempre es reproducible.", "Si no se loguea, no existe."). No generar copy manual.
-4. **Slide N (CTA final):** el script inyecta "¿Listo para aplicarlo?", el botón "Comenta [PALABRA] y te paso la checklist completa" y la línea de cierre. NO generar copy manual.
+3. **Slide N-1 (Puente-recap):** el script arma "Antes del final: el resumen" con checklist de las 3 ideas clave extraídas del propio carrusel (títulos de inicio/medio/cierre, 7 palabras máx). Sin títulos suficientes, usa una frase puente del banco `PUENTES`. Con `--landing`, el título pasa a "Ver no es hacer: empieza a programar hoy" y se agrega una mini-card con el dominio (curso + Telegram). No generar copy manual.
+4. **Slide N (CTA final):** el script inyecta "¿Listo para aplicarlo?", terminal con TODOS los comandos del carrusel, card gigante "COPIA LOS COMANDOS DEL PRIMER COMENTARIO", botón CTA y línea de cierre. `--cta-modo comentar` (default): botón "Comenta [PALABRA] y te paso la checklist completa". `--cta-modo seguir`: botón "SÍGUENOS Y NO TE PIERDAS LO QUE SIGUE" + "Guarda este carrusel: lo vas a necesitar · El próximo tema lo eligen los seguidores" (gatillos de pérdida + pertenencia). Con `--landing` se reemplaza ese bloque: título "De mirar a programar", terminal (máx 6 comandos), card gigante con el dominio + "Curso de Python completo y canal de Telegram" + botón "EMPIEZA EN [DOMINIO]" (sin flecha), y línea fina "Todos los comandos completos están en el primer comentario". NO generar copy manual.
 
 Reglas de copy:
 - Hooks: curiosidad técnica legítima ("Tu config por defecto no es segura"), nunca clickbait falso ("esto te va a asustar").
@@ -124,6 +167,24 @@ Si `data-props` no está, el JSON se toma del texto interior del `<div class="co
 | `checklist` | Takeaways / resumen accionable | `titulo`, `items: []` |
 | `mitos` | Mito vs realidad | `mito`, `realidad` |
 | `social` | Portadas/CTA valor | `titulo`, `texto`, `cta` |
+| `tree` | Árbol de archivos o ramas git | `titulo`, `nodos: [{v, depth, tipo: dir\|file}]` o `tree: "texto"`, `modo: fs\|git`, `ramas: []` |
+| `http` | Request/response de API | `metodo`, `ruta`, `codigo`, `nota_estado`, `request`, `response` |
+| `browser` | Mock de ventana web | `url`, `titulo`, `vista` |
+| `diff` | Antes vs después (código/config) | `titulo`, `antes`, `despues` |
+| `stats` | Métricas / cifras impacto | `titulo`, `items: [{valor, etiqueta}]` |
+| `tabla` | Tabla comparativa densa | `titulo`, `headers: []`, `filas: [[]]` |
+| `layers` | Capas (OSI, Docker, pirámide) | `titulo`, `capas: [{v, sub, tipo}]` |
+| `pipeline` | Etapas CI/CD o flujo deploy | `titulo`, `etapas: [{v, estado: ok\|run\|warn\|err\|idle}]` |
+| `faq` | Pregunta + respuesta / objeciones | `titulo`, `pregunta`, `respuesta` o `items: [{q, a}]` |
+| `quote` | Cita o principio editorial | `texto`, `autor` (default `CHMODX`), `rol` |
+| `quiz` | Pregunta + opciones (engagement) | `pregunta`, `opciones: [{v, ok}]`, `pie` |
+| `editor` | Snippet como ventana de IDE | `archivo`, `lenguaje`, `codigo`, `salida`, `pie` |
+| `gh-stats` | Ficha de repo GitHub | `repo`, `desc`, `stars`, `forks`, `issues`, `licencia`, `lenguajes: [{n, p}]`. Con `"auto": true` trae los datos **reales** de la API de GitHub |
+| `qr` | Código QR escaneable desde pantalla (cierra el funnel) | `url` (obligatorio), `titulo`, `pie`, `escanea`, `color` (default negro) |
+| `stack-tec` | Fila de tecnologías/stack (alias `tecnologias`) | `titulo`, `items: [{v, sub, color}]` o `["Python", "Git"]`, `pie` |
+| `error` | Consola con traceback real (errores típicos) | `titulo`, `archivo`, `texto` (traceback completo), `linea` (resumen), `pie` |
+| `timeline-fases` | Ruta de aprendizaje por fases/semanas (alias `roadmap`) | `titulo`, `etapas: [{v, sub, estado: ok\|run\|error}]`, `pie` |
+| `indice` | "Lo que verás" numerado (alias `toc`) | `titulo`, `items: ["...", ...]` o `[{v}]`, `pie` |
 
 Reglas por componente (el builder valida y avisa):
 - **`code`**: máx 8 líneas visibles por slide. Si es más largo, dividiólo en 2 slides. Tipografía mono Hask, fondo `#0F172A`, borde `#334155`.
@@ -131,7 +192,49 @@ Reglas por componente (el builder valida y avisa):
 - **`card-compare`**: máx 4 items por columna, 2 columnas.
 - **`diagram`**: máx 5 nodos por slide (legibilidad vertical). Caja con borde acento, flecha entre nodos.
 - **`checklist`**: máx 4 items, check verde.
+- **`tree`**: máx 10 líneas; `depth` = nivel de sangría; `tipo` se infiere por `/` final si falta. Modo `git`: `ramas: ["main*", ...]` con `*` en la actual.
+- **`http`**: `request`/`response` máx 8 líneas c/u; el método tiñe el badge (GET verde, POST azul, PUT ámbar, DELETE rojo).
+- **`diff`**: máx 8 líneas en total (4+4); panel ANTES rojo / DESPUÉS verde.
+- **`stats`**: máx 4 tarjetas; valores solo verificables o cualitativos (nunca cifras inventadas).
+- **`tabla`**: máx 4 filas.
+- **`layers`**: máx 5 capas; `tipo: front|back|db|api` tiñe el borde.
+- **`pipeline`**: máx 5 etapas; `estado: ok|run|warn|err|idle`.
+- **`faq`**: máx 3 items (o 1 `pregunta`+`respuesta`).
+- **`quiz`**: máx 4 opciones; 1 sola `ok: true`; el `pie` apunta al siguiente slide.
+- **`editor`**: máx 10 líneas de código + 4 de salida; reutiliza el resaltado de `code`; barra de estado con archivo y lenguaje.
+- **`gh-stats`**: máx 4 lenguajes (barra proporcional + leyenda); stars/forks/issues como texto documentado, nunca inventado. Con `"auto": true` los trae de la API de GitHub (fallback a los valores escritos si no hay red).
+- **`qr`**: máx 1 por slide; el QR va sobre caja blanca (escaneable sobre fondo negro). Requiere `segno` (`pip install --user --break-system-packages segno`); sin él degrada a la URL en texto.
+- **`stack-tec`**: máx 8 chips. `color` opcional; si falta se deduce por nombre de tecnología.
+- **`error`**: máx 12 líneas. `Traceback`/`Error`/`Exception` se tiñen de rojo, `File`/contexto en ámbar.
+- **`timeline-fases`**: máx 6 etapas. `estado` = `ok` (✓ acento) · `run` (▶ ámbar) · `error` (✕ rojo).
+- **`indice`**: máx 7 items; numerados automáticamente.
 - Todo componente respeta 1 idea principal por slide.
+
+## Componentes por categoría de post (matriz)
+
+El prompt controla los componentes por 3 vías: `--vertical` (elige el banco
+`COBERTURA` en `copywriting/`), `--componentes` (fuerza el set) y `--no-auto`
++ HTML a mano (control total). Combinaciones recomendadas:
+
+| Categoría de post | `--componentes` sugerido | Vertical |
+|---|---|---|
+| Comando / tutorial (Linux, nmap, docker) | `terminal,tree,checklist` | infra, cybersec |
+| Comparativa X vs Y / antes-después | `card-compare,diff,tabla` | cualquiera |
+| Arquitectura (RAG, OSI, CI/CD) | `diagram,layers,pipeline` | ai, infra |
+| API / endpoint (REST, auth, SQLi) | `http,code,card-info` | cybersec, prog |
+| Proyecto / repo OSS | `card-repo,tree,code` | prog |
+| Estructura de proyecto / Git flow | `tree,terminal,pasos` | prog, infra |
+| Métricas / incidente | `stats,pipeline,checklist` | infra |
+| Engagement / mito | `mitos,quiz,faq,quote` | cualquiera |
+| Definición / concepto | `card-info,faq,quote` | ai, prog |
+
+Estructura de prompt recomendada por categoría (la portada siempre lleva
+hook + subtítulo + componente gancho automático):
+
+```
+@tech-carousel — [categoría]: [tema]. Color [#HEX], [N] slides.
+Forzar: --componentes [set de la matriz] (opcional).
+```
 
 ## Sets de íconos (auto-detección)
 
@@ -157,7 +260,7 @@ Verificá la categoría detectada (la imprime el builder) o forzá con `--iconos
 Se ejecuta solo dentro del paso 4 si no existen `slide-*.html` en la carpeta del tema. Para correrlo aparte (recomendado cuando querés revisar el copy antes de renderizar):
 
 ```bash
-python3 ~/.claude/skills/tech-carousel/generar_copy_tech.py \
+python3 ~/.config/opencode/skills/tech-carousel/generar_copy_tech.py \
   --tema <slug> --slides 8 --vertical cybersec \
   --color "#RRGGBB" \
   [--display-tema "<legible>"] [--short-tema "<corto>"]
@@ -170,7 +273,7 @@ Crea `slide-01..N.html` con la estructura viral + marcadores de componente cuand
 
 ### 2. Crear carpeta fuente + slides HTML (estructura exacta, probada)
 
-Carpeta: `/mnt/sdcard/CTSLIDER/<slug>/` (minúsculas, guiones).
+Carpeta: `$CTSLIDER/<slug>/` con `$CTSLIDER = $CTSLIDER_DIR | /mnt/sdcard/CTSLIDER (Termux) | ~/CTSLIDER` (minúsculas, guiones).
 
 ```html
 <!DOCTYPE html>
@@ -196,7 +299,7 @@ Carpeta: `/mnt/sdcard/CTSLIDER/<slug>/` (minúsculas, guiones).
       <!-- componente opcional: ver tabla de componentes -->
     </div>
     <div class="pie">
-      <span class="logo"></span>TechEdu · <TEMA>
+      <span class="logo"></span>CHMODX · <TEMA>
     </div>
   </div>
 </body>
@@ -207,39 +310,55 @@ Obligatorio: `<div class="numero">X/N</div>`, wrapper `<div class="slide">`, `<d
 
 ### 3. Story fuente (opcional)
 
-`story-fuente.html` con `.titulo` y 1-2 `<span class="clave">`. Sin `.pie` ni `.numero`.
+`story-fuente.html` con `.titulo` y 1-2 `<span class="clave">` + `.cuerpo` como subtítulo. El builder arma la story pro: isotipo, título, subtítulo, **terminal con los 3 primeros comandos reales del carrusel** (extraídos de los slides) y **botón "VER POST COMPLETO EN EL PERFIL →"** (fondo negro, borde de acento). Sin `.pie` ni `.numero`. Re-render solo story: `--solo-story`.
 
 ### 4. Generar y renderizar
 
 ```bash
-python3 ~/.claude/skills/tech-carousel/tech_carousel.py \
+python3 ~/.config/opencode/skills/tech-carousel/tech_carousel.py \
   --tema <slug> --color "#RRGGBB" --slides 8 \
   --formato 9:16 --vertical cybersec \
   --display-tema "<legible>" --short-tema "<corto>"
 ```
 
 Salidas en la carpeta del tema: `renders/` (HTML), `preview/` (PNG), `stories/`, `caption.txt`.
-- Renderiza uno a la vez con Chromium headless (un loop produce PNG en blanco).
+- Renderiza **en paralelo** (varios Chromium a la vez; `--workers` para fijarlo). Ajustá el conteo si la máquina se queda sin memoria.
 - Mide títulos en Chromium (`Range.getClientRects()`) para la regla de keywords: 1 línea → 1 `.clave`, 2-3 líneas → 2. Repite hasta 3 pasadas.
 - Tinte dinámico del isotipo con `CTSLIDER/logo.png` en el color HEX pedido.
 - `--formato`: 9:16 → 1080×1920 · 3:4 → 1080×1440 · 4:5 → 1080×1350 · 1:1 → 1080×1080. El cuerpo del slide mide 44px (37 en 1:1) y el texto de los componentes nace de `__comp_base__` — 40px en 9:16/4:5/3:4 y 45px en 1:1 — inyectado en `.comp-wrap { font-size }`, porque ningún `.slide` fija `font-size` y sin eso los `em` de los componentes heredan los 16px del navegador (texto a mitad de tamaño). En formatos cortos el builder aligera además el shell en el dict `ajustes` de `_format_scaling()` (pad_top/pad_bottom/ícono/título), baja `__comp_zoom__` (0.80 en 4:5 y 3:4, 0.72 en 1:1) y en 1:1 oculta el chip `.ind-swipe`, que si no pisa el pie.
-- Al terminar mide el recorte real de `.contenido` por slide: imprime `✓ Sin recortes: todo el contenido cabe en el lienzo.` o `! slide-XX: Npx de contenido recortadas`. Si aparece un recorte, NO publiques: acortá el copy o bajá `__comp_zoom__` en `_format_scaling()` de `tech_carousel.py` y volvé a renderizar.
+- **Auto-fit (default):** antes de renderizar mide el recorte de `.contenido` y, si un slide desborda, baja el zoom de su envoltorio `.ajuste` (de 1.0 hasta el piso 0.70) hasta que entra. Termina con `✓ Sin recortes` o `! slide-XX: sigue recortando Npx (piso alcanzado; acortá el copy)`. Con `--sin-autofit` sólo avisa. El wrapper `.ajuste` (dentro de `.contenido`) es lo que permite escalar sin tocar el diseño base.
+- **Iteración rápida:** `--solo-html` escribe HTML + auto-fit sin PNG/story/copy; `--incremental` salta los slides cuyo HTML no cambió (hash) y reusa sus PNG.
+- **Exports opcionales:** `--contact-sheet` (grilla `contact-sheet.png`), `--pdf` (carrusel en PDF), `--reel` (MP4 vertical con ffmpeg).
 
 ### 5. Verificar
 
-- Cabecera del builder: `Color`, `Slides` y `Vertical` correctos.
+- Cabecera del builder: `Color`, `Slides` y `Vertical` correctos, y el aviso de contraste del acento si aparece.
 - Cada PNG: ícono nítido, portada con badge + barra de progreso, N-1 con puente, N con botón de CTA, 1 clave por línea de título en `--resalte`, sin texto cortado.
-- Componentes: terminal/código legibles en el móvil, comparativas sin desborde, diagrama ≤5 nodos.
-- `caption.txt`: tema, palabra CTA, hashtags.
+- Componentes: terminal/código legibles en el móvil, comparativas sin desborde, diagrama ≤5 nodos. Con `--contact-sheet`, revisá la grilla completa de un vistazo.
+- **QA de repetición (automática):** al terminar, el builder compara el contenido de los slides fuente y avisa si dos slides no consecutivos comparten ≥85% del texto, o si un mismo componente aparece en la mitad o más de los slides. Son avisos, no bloquean.
+- `caption.txt`: tema, palabra CTA, hashtags. Con `--landing`, verifica que arranque con el dominio (y el segundo enlace si usás `--landing2`).
 - Reportá carpeta de salida, categoría de íconos y conteo final.
 
 ### 6. copy-redes.md
 
 ```bash
-python3 ~/.claude/skills/tech-carousel/generar_copy_tech.py --carpeta <slug> [--funnel]
+python3 ~/.config/opencode/skills/tech-carousel/generar_copy_tech.py --carpeta <slug> [--funnel]
 ```
 
 Genera copy por plataforma (Instagram 60-95 palabras, TikTok 30-50, Facebook 60-110, Story ≤8 palabras en mayúsculas) con QA de presupuesto de palabras, dialecto neutro y hashtags exactos (IG 9, TT 5, FB 5).
+
+Con `--landing` (y `--landing2`) agrega una sección **🔗 Enlaces con UTM** lista para pegar en bio/story/comentario: el mismo dominio con `?utm_source=instagram|tiktok|facebook&utm_medium=carrusel&utm_campaign=<slug>`, para medir de qué red llega el tráfico.
+
+Incluye además un **📅 Plan de publicación sugerido** (días y franjas por red, republicación de story y repost de portada como reel) que podés ajustar según la analítica de tu cuenta.
+
+## Brief interactivo (`brief.py`)
+
+Alternativa a escribir el comando a mano: hace las 4 preguntas del brief (tipo → tema/color/slides → vertical → extras, incluida la landing y el repo) y arma/ejecuta el comando.
+
+```bash
+python3 ~/.config/opencode/skills/tech-carousel/brief.py            # interactivo
+python3 ~/.config/opencode/skills/tech-carousel/brief.py --dry-run  # sólo imprime el comando
+```
 
 ## Reglas de diseño (las aplica el builder)
 
@@ -263,7 +382,7 @@ Genera copy por plataforma (Instagram 60-95 palabras, TikTok 30-50, Facebook 60-
 | Componente no se expande | Falta `class="componente"` o `data-component`, o el JSON de `data-props` es inválido. |
 | PNG en blanco | Se renderizó en loop. Usá el builder, no scripts propios. |
 | Falta el pie | Falta `<div class="slide">` wrapper. |
-| Chromium no existe | `export CHROMIUM=/ruta/chromium`. |
+| Chromium no existe | El builder busca en `PATH` y en `~/.cache/ms-playwright/chromium*`. Si no lo encuentra: `export CHROMIUM=/ruta/chromium`. |
 | CTSLIDER no encontrado | `CTSLIDER_DIR=/ruta/a/CTSLIDER python3 ...` |
 | Texto desbordado | Copy largo: acortá el `.cuerpo` o dividió el slide. |
 | Texto de componente muy chico (≈16px) | `.comp-wrap` sin `font-size`: revisá `__comp_base__` en `theme/tokens.py` y que `_format_scaling()` lo setee (40 / 45 en 1:1). |
@@ -279,10 +398,11 @@ Nunca edites los PNG ni los HTML de `renders/`. Corregí el **slide fuente** y v
 
 ## Notas de producción
 
+- **Entorno instalado (este equipo):** skill en `~/.config/opencode/skills/tech-carousel/` · carpeta de trabajo `/sdcard/CTSLIDER` · Pillow 12.3 (`pip3 --user`) · Chromium headless de Playwright (`chrome-headless-shell` aarch64 en `~/.cache/ms-playwright`, resuelto solo por `utils/render.py`) · `python3 -m pytest tests/` → 78 passed.
 - **1 comando:** `tech_carousel.py` escribe el copy si falta, renderiza y verifica. `--copy-redes` agrega `copy-redes.md`; `--offline` evita Google Fonts; `--no-auto` exige slides hechos a mano.
 - Copywriting también suelto con `generar_copy_tech.py` (paso 1 del pipeline).
 - Ejemplos funcionales por vertical (fuentes + comando exacto) en `examples/`: `cybersec-sql-injection/`, `prog-python-testing/`, `ai-prompts/`.
 - Íconos, badge, caption y hashtags se derivan del tema: solo necesitás tema + color HEX + slides.
-- Marca default `TechEdu`; cambiála con `--marca` si el carrusel es para otro proyecto.
+- Marca default `CHMODX`; cambiála con `--marca` si el carrusel es para otro proyecto.
 - Offline-friendly: fallbacks de tipografía y SVG sin filtros rasterizables en cualquier Chromium.
-- Tests: `python3 -m pytest tests/` (61 casos: escalado por formato, proporción de font-size, keywords, props, color, CLI, fallback de GPU).
+- Tests: `python3 -m pytest tests/` (78 casos: escalado por formato, proporción de font-size, keywords, props, color, CLI, fallback de GPU).

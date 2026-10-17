@@ -40,7 +40,13 @@ COBERTURA = (
         "titulo": "El error más caro",
         "cuerpo": "Confiar en la primera respuesta. Verificar es parte del "
                   "trabajo, no un paso opcional.",
-        "componente": None,
+        "componente": {"tipo": "faq",
+                       "props": {"titulo": "Verificar, siempre",
+                                 "items": [
+                                     {"q": "¿Qué se verifica primero?",
+                                      "a": "Cifras, nombres propios y código que vas a ejecutar."},
+                                     {"q": "¿Y si suena muy seguro?",
+                                      "a": "Peor: la seguridad del tono no predice la verdad."}]}},
     },
     {
         "titulo": "Mito vs realidad",
@@ -66,20 +72,40 @@ COBERTURA = (
         "titulo": "El valor está en tu criterio",
         "cuerpo": "La herramienta multiplica lo que ya sabes hacer; no crea "
                   "criterio donde no lo hay.",
-        "componente": None,
+        "componente": {"tipo": "quote",
+                       "props": {"texto": "La IA multiplica tu criterio; no lo crea. Úsala para ir más rápido, no para pensar menos.",
+                                 "autor": "CHMODX", "rol": "línea editorial"}},
     },
 )
 
 HOOKS = (
+    "Tu prompt vago tiene respuesta vaga",
     "La IA no piensa: predice",
-    "Tu prompt es demasiado vago",
+    "Pegaste datos sensibles al chat",
     "Confías en una respuesta sin verificar",
-    "El modelo falla igual en el intento 100",
+    "El modelo olvidó tu contexto a mitad",
     "Criterio humano, velocidad de máquina",
 )
 
 SUBHOOKS = (
     "IA en 7 ideas para usarla con criterio, no con fe.",
-    "Cómo funciona de verdad y dónde se rompe.",
+    "Del prompt vago al sistema que sí responde.",
     "Menos humo, más práctica con modelos y agentes.",
+)
+
+# Portada: terminal con el fallo típico de contexto.
+HOOK_COMPS = (
+    {"tipo": "terminal",
+     "props": {"titulo": "prompt · intento 1",
+               "lines": [
+                   {"t": "cmd", "v": "prompt: «hazlo bien»"},
+                   {"t": "err", "v": "respuesta genérica, 0 criterios"},
+                   {"t": "cmd", "v": "prompt: rol + contexto + formato"},
+                   {"t": "ok", "v": "respuesta usable al primer intento"}]}},
+    {"tipo": "terminal",
+     "props": {"titulo": "contexto · límite",
+               "lines": [
+                   {"t": "cmd", "v": "pegar documento de 200 páginas"},
+                   {"t": "warn", "v": "ventana llena: olvidó el inicio"},
+                   {"t": "ok", "v": "resume por partes, verifica al final"}]}},
 )

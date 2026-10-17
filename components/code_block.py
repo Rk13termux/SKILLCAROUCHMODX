@@ -90,3 +90,81 @@ def render(props, ctx, warnings=None):
         f'<span>{len(lineas)} líneas</span></div>'
         f'<div class="code__body">{filas}</div>{notas_html}</div>'
     )
+
+
+MAX_DIFF_LINEAS = 8
+
+
+def render_diff(props, ctx, warnings=None):
+    """diff: panel ANTES (rojo) vs DESPUÉS (verde), código o config."""
+    titulo = props.get("titulo") or props.get("title") or "Antes / después"
+    antes = str(props.get("antes") or props.get("before") or "").splitlines()
+    despues = str(props.get("despues") or props.get("after") or "").splitlines()
+    total = len(antes) + len(despues)
+    if total > MAX_DIFF_LINEAS:
+        if warnings is not None:
+            warnings.append(f"diff: {total} líneas > {MAX_DIFF_LINEAS}, se recortan")
+        antes, despues = antes[:4], despues[:4]
+
+    def _panel(lineas, cls, marca):
+        filas = "".join(
+            f'<div class="diff__line {cls}"><span class="diff__mk">{marca}</span>'
+            f'<span>{_html.escape(ln) if ln.strip() else "&nbsp;"}</span></div>'
+            for ln in lineas) or f'<div class="diff__line {cls}">(sin cambios)</div>'
+        return filas
+    return (
+        '<div class="diff">'
+        f'<div class="diff__titulo">{_html.escape(str(titulo))}</div>'
+        '<div class="diff__cols">'
+        f'<div class="diff__col diff__col--antes"><div class="diff__lbl">✕ ANTES</div>{_panel(antes, "diff__line--del", "−")}</div>'
+        f'<div class="diff__col diff__col--despues"><div class="diff__lbl">✓ DESPUÉS</div>{_panel(despues, "diff__line--add", "+")}</div>'
+        '</div></div>'
+    )
+
+
+MAX_EDITOR_LINEAS = 10
+MAX_SALIDA_LINEAS = 4
+
+
+def render_editor(props, ctx, warnings=None):
+    """editor: snippet como ventana de IDE (pestaña + salida + status)."""
+    lenguaje = str(props.get("lenguaje") or props.get("lang") or "python").lower()
+    archivo = str(props.get("archivo") or props.get("file") or "main.py")
+    codigo = str(props.get("codigo") or props.get("code") or "")
+    salida = str(props.get("salida") or props.get("output") or "")
+    pie = str(props.get("pie") or props.get("status") or "")
+    lineas = codigo.split("\n")
+    if len(lineas) > MAX_EDITOR_LINEAS:
+        if warnings is not None:
+            warnings.append(f"editor: {len(lineas)} líneas > {MAX_EDITOR_LINEAS}, se recortan")
+        lineas = lineas[:MAX_EDITOR_LINEAS]
+    filas = "".join(
+        f'<div class="editor__line"><span class="editor__ln">{i}</span>'
+        f'<span class="editor__src">{resaltar(ln, lenguaje)}</span></div>'
+        for i, ln in enumerate(lineas, 1)
+    )
+    salida_html = ""
+    if salida.strip():
+        outs = salida.splitlines()[:MAX_SALIDA_LINEAS]
+        if len(salida.splitlines()) > MAX_SALIDA_LINEAS and warnings is not None:
+            warnings.append(f"editor: salida > {MAX_SALIDA_LINEAS} líneas, se recorta")
+        cuerpo_out = "".join(
+            f'<div class="editor__outline">{_html.escape(ln) if ln.strip() else "&nbsp;"}</div>'
+            for ln in outs)
+        salida_html = (f'<div class="editor__out"><div class="editor__outbar">'
+                       f'<span class="prompt">$</span> {lenguaje} {archivo}</div>'
+                       f'{cuerpo_out}</div>')
+    if not pie:
+        pie = f"● {archivo} — {lenguaje.capitalize()} · {len(lineas)} líneas"
+    return (
+        '<div class="editor">'
+        '<div class="editor__bar">'
+        '<span class="editor__dot editor__dot--r"></span>'
+        '<span class="editor__dot editor__dot--y"></span>'
+        '<span class="editor__dot editor__dot--g"></span>'
+        f'<span class="editor__tab">{_html.escape(archivo)}</span>'
+        f'<span class="editor__lang">{_html.escape(lenguaje.upper())}</span>'
+        "</div>"
+        f'<div class="editor__body">{filas}</div>{salida_html}'
+        f'<div class="editor__status">{_html.escape(pie)}</div></div>'
+    )

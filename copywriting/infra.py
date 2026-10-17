@@ -29,7 +29,12 @@ COBERTURA = (
         "titulo": "El error clásico",
         "cuerpo": "Escalar agregando máquinas sin mirar el cuello de botella "
                   "real: casi siempre es una cola o una consulta.",
-        "componente": None,
+        "componente": {"tipo": "layers",
+                       "props": {"titulo": "Dónde buscar el cuello",
+                                 "capas": [
+                                     {"v": "Red", "sub": "latencia y DNS"},
+                                     {"v": "App", "sub": "colas y reintentos", "tipo": "api"},
+                                     {"v": "Base de datos", "sub": "consultas lentas", "tipo": "db"}]}},
     },
     {
         "titulo": "Configuración segura",
@@ -78,20 +83,45 @@ COBERTURA = (
         "titulo": "Aburrido es sinónimo de fiable",
         "cuerpo": "La infraestructura buena no se nota: no suena, no despierta "
                   "a nadie y no aparece en ningún chat de urgencias.",
-        "componente": None,
+        "componente": {"tipo": "pipeline",
+                       "props": {"titulo": "Deploy aburrido = deploy bueno",
+                                 "etapas": [
+                                     {"v": "test", "estado": "ok"},
+                                     {"v": "staging", "estado": "ok"},
+                                     {"v": "canaria 10%", "estado": "ok"},
+                                     {"v": "prod", "estado": "ok"}]}},
     },
 )
 
 HOOKS = (
-    "Tu infraestructura no te avisa a tiempo",
+    "Tu disco se llena esta noche",
     "El deploy falla donde no miraste",
     "Escalar sin medir es caro",
-    "El cuello de botella casi nunca es donde crees",
+    "El pod lleva 14 restarts",
     "Operar sin métricas es operar a ciegas",
+    "El cuello de botella no es donde crees",
 )
 
 SUBHOOKS = (
     "Infraestructura en 7 ideas para operar sin sorpresas.",
-    "Redes, despliegue y monitoreo explicados sin humo.",
+    "Del disco lleno al deploy aburrido.",
     "De la petición al log: cómo se sostiene un sistema.",
+)
+
+# Portada: terminal con el incidente que todos temen.
+HOOK_COMPS = (
+    {"tipo": "terminal",
+     "props": {"titulo": "guardia · 03:14",
+               "lines": [
+                   {"t": "cmd", "v": "df -h /var && kubectl get pods"},
+                   {"t": "warn", "v": "/var al 98% · logs sin rotar"},
+                   {"t": "err", "v": "api-7d9f CrashLoopBackOff · 14 restarts"},
+                   {"t": "ok", "v": "todo esto se veía venir"}]}},
+    {"tipo": "terminal",
+     "props": {"titulo": "diagnóstico · 3 líneas",
+               "lines": [
+                   {"t": "cmd", "v": "uptime && free -m | tail -1"},
+                   {"t": "out", "v": "load 12.4 · memoria 94% en uso"},
+                   {"t": "warn", "v": "escalar aquí es tirar dinero"},
+                   {"t": "ok", "v": "primero: la cola, después: el cluster"}]}},
 )
