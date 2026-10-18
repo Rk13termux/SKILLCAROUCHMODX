@@ -257,9 +257,21 @@ def capas_before(rgb, rol: str = "cover") -> list:
     return [_vineta()] + _mesh(rgb, rol) + [_BASE]
 
 
-def fondo_simple(rgb=(250, 204, 21), rol: str = "cover") -> str:
-    """Fondo en una sola declaración (story): sin textura ni grano."""
-    return ", ".join(capas_before(rgb, rol))
+def fondo_simple(rgb=(250, 204, 21), rol: str = "cover",
+                 semilla: int = SEMILLA) -> str:
+    """Fondo en una sola declaración (story): viñeta + circuitos + base.
+
+    El mismo fondo de la casa que los slides (circuito sobre negro), sin
+    textura enmascarada ni grano (la story no usa ::before/::after).
+    """
+    capas = []
+    # textura de circuitos (el fondo de la casa) — va primero (encima)
+    img, _tam, _ = _textura(VARIANTE_DEFECTO, rgb, semilla)
+    capas.extend(img)
+    # viñeta + base
+    capas.append(_vineta())
+    capas.append(_BASE)
+    return ", ".join(capas)
 
 
 def fondo(rol: str = "contenido", vertical: str = "tech", rgb=(250, 204, 21),

@@ -2113,8 +2113,6 @@ __links_fuentes__
     text-align: center;
     position: relative;
     background:
-      radial-gradient(circle at 85% 8%, __accent_rgba__, transparent 45%),
-      radial-gradient(circle at 8% 92%, var(--acento-rgba-b), transparent 45%),
       __fondo_story__,
       #000000;
   }
