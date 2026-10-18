@@ -479,24 +479,59 @@ def generar_copy_redes(carpeta: Path, display, short, marca=None, funnel=False,
         linea_cta_tt = f"{linea_landing_tt} {linea_cta_tt}"
         # El primer comentario ya abre con la landing: el cierre no la repite.
 
-    ig_titulo = f"{emo} {short} sin humo: guía completa"
+    # ── Emojis por tema, sin repetir entre plataformas ──────────────
+    _POOLS_EMOJI = {
+        "cybersec": ["🔒", "🛡️", "⚠️", "🔍", "💻", "🎯", "🚨", "🔐", "📡"],
+        "prog": ["💻", "🐍", "⚡", "🔧", "🚀", "📦", "🎯", "✨", "🛠️"],
+        "programming": ["💻", "🐍", "⚡", "🔧", "🚀", "📦", "🎯", "✨", "🛠️"],
+        "dev": ["💻", "🐍", "⚡", "🔧", "🚀", "📦", "🎯", "✨", "🛠️"],
+        "ai": ["🤖", "🧠", "⚡", "🔮", "💡", "📊", "🎯", "✨", "🔬"],
+        "ia": ["🤖", "🧠", "⚡", "🔮", "💡", "📊", "🎯", "✨", "🔬"],
+        "infra": ["🚀", "🔧", "⚙️", "🌐", "📡", "🛡️", "📦", "⚡", "💻"],
+        "devops": ["🚀", "🔧", "⚙️", "🌐", "📡", "🛡️", "📦", "⚡", "💻"],
+        "tech": ["💡", "🔧", "⚡", "🎯", "🚀", "💻", "📊", "✨", "🛠️"],
+    }
+    pool = _POOLS_EMOJI.get((vertical or "tech").lower(),
+                            _POOLS_EMOJI["tech"])
+    # Tres emojis distintos: uno por plataforma (sin repetir).
+    emo_ig, emo_tt, emo_fb = pool[0], pool[1], pool[2]
+    # Acentos (no se repiten entre plataformas tampoco).
+    acentos = ["✨", "📌", "🔥", "⚡", "🎯", "📚", "🚀", "💬"]
+    acc_ig, acc_tt, acc_fb = acentos[0], acentos[1], acentos[2]
+
+    # ── Títulos SEO + retención ─────────────────────────────────────
+    # Incluyen la keyword principal + término buscable (guía, tutorial,
+    # paso a paso) para que aparezcan en los buscadores de cada red.
+    ig_titulo = f"{emo_ig} {kw1}: guía completa paso a paso"
+    tt_titulo = f"{emo_tt} {kw1} en 30 segundos"
+    fb_titulo = f"{emo_fb} Guía de {kw1}: {kw2} y {kw3}"
+
+    # ── Descripciones optimizadas para SEO y promoción de la web ────
+    if dom:
+        promo = (f"Empieza en {dom}: curso de Python completo y canal de "
+                 "Telegram para resolver dudas en comunidad.")
+        if dom2:
+            promo = (f"Empieza en {dom}: curso de Python completo. "
+                     f"{txt2}: {dom2}.")
+    else:
+        promo = f"Guía completa en {marca}."
+
     ig_desc = (
-        f"{emo} {display}: guía completa en un carrusel.\n"
-        f"Comandos reales, errores típicos y checklist aplicable hoy. ✨\n"
-        f"Ideal para devs, estudiantes y curiosos de {kw2}.\n"
+        f"{emo_ig} {display}: guía completa en un carrusel.\n"
+        f"Comandos reales y checklist aplicable hoy. {acc_ig}\n"
         f"Si trabajas con {kw1}, guarda este post: vuelve a servirte cuando "
-        f"lo necesites. 📌\n"
-        f"Compártelo con tu equipo. 💬 ¿Qué punto aplicas primero?\n"
+        f"lo necesites. {acc_tt}\n"
+        f"💬 ¿Qué punto aplicas primero?\n"
+        f"{promo}\n"
         f"{linea_cta_ig}\n"
         f"— {marca}"
     )
     if funnel:
         ig_desc += "\nGuía completa en el enlace del perfil."
 
-    tt_titulo = f"{emo} {short} en 30 segundos"
     tt_desc = (
-        f"{emo} {kw1} explicado rápido: {kw2} y {kw3} sin rodeos.\n"
-        f"Mira el carrusel completo en IG. 💬\n"
+        f"{emo_tt} {kw1} explicado rápido: {kw2} y {kw3} sin rodeos.\n"
+        f"Curso y guía completa en {dom or marca}. 💬\n"
         f"Guarda y comparte con quien programa.\n"
         f"{linea_cta_tt}\n"
         f"— {marca}"
@@ -504,19 +539,19 @@ def generar_copy_redes(carpeta: Path, display, short, marca=None, funnel=False,
     if funnel:
         tt_desc += "\nGuía en el perfil."
 
-    fb_titulo = f"{emo} Guía completa: {short}"
     fb_desc = (
-        f"{emo} En las imágenes: {display}, explicado {kw3}.\n"
+        f"{emo_fb} En las imágenes: {display}, explicado paso a paso.\n"
         f"El post recorre {kw1}, el error más común con {kw2} y una checklist "
-        f"de cuatro puntos para aplicarla hoy mismo. ✨\n"
+        f"de cuatro puntos para aplicarla hoy mismo. {acc_ig}\n"
         f"Pensado para quien necesita resolver esto sin perder una tarde en "
-        f"documentación dispersa. Si te sirve, compártelo con tu equipo. 📌\n"
+        f"documentación dispersa. Si te sirve, compártelo con tu equipo. "
+        f"{acc_fb}\n"
         + (f"{linea_landing_fb}\n" if dom else "") +
         f"💬 Cuéntame en comentarios qué te pareció y qué tema sigue.\n"
         f"— {marca}"
     )
 
-    story = f"{emo} {short.upper()[:54]}"
+    story = f"{emo_ig} {short.upper()[:54]}"
 
     bloques = [
         ("Instagram", ig_desc, PRESUPUESTO["Instagram"]),
