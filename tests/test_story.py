@@ -2,7 +2,7 @@
 
 Si falta, la declaración entera se invalida en tiempo de cómputo y Chrome la
 tira sin ruido (fue el caso: sin `--acento-rgba-b` el `background` de la story
-se caía entero y salía sin glow, sin estrellas y con las keywords blancas).
+se caía entero y salía sin glow y con las keywords blancas).
 """
 
 import re
@@ -36,9 +36,11 @@ def test_slides_tambien_definen_todas_las_vars():
     assert not faltan, f"vars sin definir en los slides: {sorted(faltan)}"
 
 
-def test_story_tiene_estrellas_en_el_background():
+def test_story_comparte_el_fondo_del_slide_sin_estrellas():
+    """La story usa las capas del fondo de la casa, sin estrellas."""
     fondo = STORY_TEMPLATE.split(".story {")[1].split("}")[0]
-    assert "__estrellas__" in fondo
+    assert "__fondo_story__" in fondo
+    assert "__estrellas__" not in STORY_TEMPLATE
     assert fondo.rstrip().endswith("#0B0B0D;")
 
 

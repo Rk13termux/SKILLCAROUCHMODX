@@ -55,7 +55,6 @@ from icons import detectar_categoria, elegir_icono, icono_slide
 from theme import colors as _colors
 from theme import fondos as _fondos
 from theme import fonts as _fonts
-from theme import stars as _stars
 from theme import tokens as _tokens
 from copywriting.base import resolver_cta_palabra
 from utils.render import resolver_chromium, resolver_ctslider
@@ -67,9 +66,11 @@ CHROMIUM = resolver_chromium()
 
 FORMATOS = {
     "9:16": {"w": 1080, "h": 1920},
+    "2:3": {"w": 1080, "h": 1620},
     "3:4": {"w": 1080, "h": 1440},
     "4:5": {"w": 1080, "h": 1350},
     "1:1": {"w": 1080, "h": 1080},
+    "16:9": {"w": 1920, "h": 1080},
 }
 
 # ── Presets de tipo de post (brief → receta) ───────────────────────
@@ -475,6 +476,18 @@ __links_fuentes__
     text-align: center;
     text-shadow: 0 0 44px var(--acento-rgba-30), 0 0 88px var(--acento-rgba-b);
   }
+  /* La portada manda: título en mayúsculas, más grande y con más brillo.
+     La palabra clave conserva su color (--resalte) y gana glow propio. */
+  .slide.cover .titulo {
+    font-size: __cover_title__px;
+    line-height: 1.04;
+    letter-spacing: -1px;
+    text-transform: uppercase;
+    text-shadow: 0 0 58px var(--acento-rgba-40), 0 0 120px var(--acento-rgba-b);
+  }
+  .slide.cover .titulo .clave {
+    text-shadow: 0 0 32px __resalte_rgba32__, 0 3px 10px rgba(0, 0, 0, 0.6);
+  }
   .cuerpo {
     font-weight: 400;
     font-size: __body_size__px;
@@ -810,6 +823,12 @@ def _clase_slide(i, n):
     return ""
 
 
+# El título de la portada va en mayúsculas y más grande que el resto.
+# 1.47 ≈ el mayor valor medido en Chromium que no dispara el auto-fit
+# (portadas reales con el terminal más alto aguantan hasta ~114px).
+_COVER_TITLE_FACTOR = 1.47
+
+
 def _format_scaling(fmt_key):
     """Factores de escala por formato (safe zones de 9:16 heredadas).
 
@@ -817,6 +836,29 @@ def _format_scaling(fmt_key):
     encogen los componentes (`__comp_zoom__`) para que nada se recorte:
     el CSS clipa con overflow:hidden, así que el ajuste es estructural.
     """
+    if fmt_key == "16:9":
+        # Apaisado (X/Twitter, thumbnail de YouTube): columna estrecha y
+        # centrada; todo el shell baja de escala para que quepa en 1080px
+        # de alto, y el texto de componente mantiene 32px efectivos.
+        sc = {
+            "__pad_top__": 46, "__pad_lr__": 300, "__pad_bottom__": 78,
+            "__logo_size__": 72, "__num_size__": 24, "__num_box__": 52,
+            "__prog_margin__": 18, "__prog_h__": 8,
+            "__icon_margin__": 12, "__icon_size__": 96,
+            "__title_size__": 54, "__title_margin__": 18,
+            "__body_size__": 34, "__badge_margin__": 20,
+            "__badge_pad_v__": 10, "__badge_pad_h__": 26, "__badge_size__": 26,
+            "__cta_margin__": 22, "__cta_size__": 28, "__cta_pad_v__": 12,
+            "__cta_pad_h__": 30, "__sec_margin__": 16, "__sec_size__": 24,
+            "__ind_margin__": 18, "__ind_size__": 20, "__footer_size__": 22,
+            "__pie_pad_v__": 12, "__pie_pad_b__": 56, "__footer_logo__": 40,
+            "__landing_dom_size__": 46, "__contenido_zoom__": 1,
+            "__comp_zoom__": 0.72, "__comp_margin__": 16, "__comp_base__": 45,
+            "__ind_h__": 46, "__ind_disp__": "inline-flex",
+        }
+        sc["__cover_title__"] = round(sc["__title_size__"] *
+                                      _COVER_TITLE_FACTOR)
+        return sc
     if fmt_key == "1:1":
         sc = {
             "__pad_top__": 16, "__pad_lr__": 44, "__pad_bottom__": 60,
@@ -839,8 +881,9 @@ def _format_scaling(fmt_key):
             "__ind_margin__": 14, "__ind_size__": 20,
             "__ind_disp__": "none", "__ind_h__": 72,
         })
+        sc["__cover_title__"] = round(sc["__title_size__"] * _COVER_TITLE_FACTOR)
         return sc
-    s = {"4:5": 0.88, "3:4": 0.92}.get(fmt_key, 1.0)
+    s = {"4:5": 0.88, "3:4": 0.92, "2:3": 0.84}.get(fmt_key, 1.0)
     sc = {
         "__pad_top__": round(130 * s), "__pad_lr__": round(90 * s),
         "__pad_bottom__": round(240 * s), "__logo_size__": round(96 * s),
@@ -871,6 +914,11 @@ def _format_scaling(fmt_key):
                 "__icon_size__": 80, "__icon_margin__": 10,
                 "__title_size__": 66, "__title_margin__": 20,
                 "__ind_margin__": 12, "__ind_h__": 56},
+        "2:3": {"__pad_top__": 62, "__pad_bottom__": 150,
+                "__comp_zoom__": 0.80, "__comp_margin__": 18,
+                "__icon_size__": 90, "__icon_margin__": 12,
+                "__title_size__": 67, "__title_margin__": 24,
+                "__ind_margin__": 14, "__ind_h__": 60},
     }
     sc.update(ajustes.get(fmt_key, {
         "__comp_zoom__": 1.0, "__comp_margin__": 34,
@@ -878,6 +926,7 @@ def _format_scaling(fmt_key):
     sc.setdefault("__comp_base__", 40)
     sc.setdefault("__ind_h__", 72)
     sc.setdefault("__ind_disp__", "inline-flex")
+    sc["__cover_title__"] = round(sc["__title_size__"] * _COVER_TITLE_FACTOR)
     return sc
 
 
@@ -1058,6 +1107,21 @@ t.setAttribute('data-lineas',tops.length);
 _RE_CLAVE = re.compile(r"""class=["']clave["']""")
 _RE_TOKEN = re.compile(r"(<[^>]+>|[^\s<]+)")
 
+# Puntuación que se queda FUERA del span: el color de acento marca la
+# palabra, no el signo («¿Tu correo…?» → ¿<clave>Tu</clave> <clave>correo</clave>…?)
+_CLAVE_IZQ = "¿¡«\"'([{"
+_CLAVE_DER = ".…,;:!?»\"')]}"
+
+
+def _partir_token(tok):
+    """(prefijo, núcleo, sufijo): deja la puntuación fuera del núcleo."""
+    i, j = 0, len(tok)
+    while i < j and tok[i] in _CLAVE_IZQ:
+        i += 1
+    while j > i and tok[j - 1] in _CLAVE_DER:
+        j -= 1
+    return tok[:i], tok[i:j], tok[j:]
+
 
 def _clave_candidatas(titulo_html, cuantas):
     """Título con EXACTAMENTE `cuantas` keywords. Determinista."""
@@ -1098,7 +1162,9 @@ def _clave_candidatas(titulo_html, cuantas):
     salida = []
     for i, tok in enumerate(tokens):
         if i in elegidas and not tok.startswith("<"):
-            salida.append(f'<span class="clave">{tok}</span>')
+            pre, nucleo, suf = _partir_token(tok)
+            salida.append(f'{pre}<span class="clave">{nucleo}</span>{suf}'
+                          if nucleo else tok)
         else:
             salida.append(tok)
     return " ".join(salida)
@@ -1286,11 +1352,173 @@ def chequear_overflow(renders_dir, nombres, ancho, alto, workers=1):
     return [(n, px) for n, px in medidos.items() if px != 0]
 
 
+# ── Título de portada: el mayor que cabe (medido, no adivinado) ─────
+
+TITULO_PORTADA_MIN = 1.0      # × el título del resto del carrusel
+TITULO_PORTADA_MAX = 2.2
+TITULO_PORTADA_PASO = 2       # px entre candidatos medidos
+
+_JS_TITULO_PORTADA = """<script>window.addEventListener('load', function(){
+var t=document.querySelector('.slide.cover .titulo');
+var c=document.querySelector('.contenido');
+if(!t||!c){return;}
+var a=document.querySelector('.ajuste')||c;
+var casos=JSON.parse(document.getElementById('tam-casos').textContent);
+var elegido=0;
+function recorte(){
+  var cr=c.getBoundingClientRect(), bottom=-1e9, top=1e9, n=0;
+  for(var i=0;i<a.children.length;i++){
+    var r=a.children[i].getBoundingClientRect();
+    if(r.height>0){n++; bottom=Math.max(bottom,r.bottom); top=Math.min(top,r.top);}
+  }
+  if(!n){return 0;}
+  return Math.max(c.scrollHeight-c.clientHeight,
+                  Math.round(bottom-cr.bottom), Math.round(cr.top-top));
+}
+for(var k=0;k<casos.length;k++){
+  t.style.fontSize=casos[k]+'px';
+  void a.offsetHeight;
+  if(recorte()<=0){elegido=casos[k];break;}
+}
+t.setAttribute('data-tam', elegido);
+})();</script>"""
+
+_RE_COVER_TITLE = re.compile(r"(\.slide\.cover \.titulo \{\s*font-size: )(\d+)(px)")
+
+
+def ajustar_titulo_portada(renders_dir, fmt_key, workers=1):
+    """Deja el título de portada lo más grande que quepa sin recortar.
+
+    Mide todos los candidatos en UNA corrida de Chromium (barrido en JS) y
+    escribe en `slide-01.html` el mayor que entra, reseteando el zoom del
+    contenido. Así cualquier portada —corta o apretada— queda máxima sin
+    que el auto-fit tenga que encoger el resto del slide.
+    Devuelve el tamaño elegido en px, o None si no se pudo medir.
+    """
+    src = renders_dir / "slide-01.html"
+    try:
+        html = src.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    if not _RE_COVER_TITLE.search(html):
+        return None
+    base = _format_scaling(fmt_key)["__title_size__"]
+    casos = list(range(round(base * TITULO_PORTADA_MAX),
+                       round(base * TITULO_PORTADA_MIN) - 1,
+                       -TITULO_PORTADA_PASO))
+    probe_dir = renders_dir / "_probe"
+    probe_dir.mkdir(parents=True, exist_ok=True)
+    probe = probe_dir / "portada.html"
+    probe.write_text(
+        html.replace("</body>",
+                     '<pre id="tam-casos" hidden>' + json.dumps(casos)
+                     + "</pre>" + _JS_TITULO_PORTADA + "</body>"),
+        encoding="utf-8")
+    fmt = FORMATOS[fmt_key]
+    cmd = _cmd_chromium(f"--window-size={fmt['w']},{fmt['h']}",
+                        "--virtual-time-budget=6000", "--dump-dom",
+                        f"file://{probe.resolve()}")
+    salida = _correr_chromium(cmd, espera=r'data-tam="\d+"').stdout
+    probe.unlink(missing_ok=True)
+    try:
+        probe_dir.rmdir()
+    except OSError:
+        pass
+    m = re.search(r'data-tam="(\d+)"', salida)
+    if not m:
+        return None
+    elegido = int(m.group(1))
+    if elegido <= 0:
+        return None
+    html = _set_zoom(html, 1.0)
+    html = _RE_COVER_TITLE.sub(
+        lambda mm: f"{mm.group(1)}{elegido}{mm.group(3)}", html, count=1)
+    src.write_text(html, encoding="utf-8")
+    return elegido
+
+
+# ── Revisión de arte: safe zones y contraste sobre el PNG final ─────
+
+# Tinta CORTADA contra el borde del lienzo (px): si el contenido desborda,
+# el clip deja la tinta pegada al borde. Guardián de segundo nivel (el
+# auto-fit por DOM es el primero). Con 50px daría falsos positivos por el
+# chip de progreso y el pie de marca, que viven cerca del borde por diseño.
+BORDE_SEGURO = 8
+_CONTRASTE_MIN = 3.0
+TINTA_UMBRAL = 150  # luminancia mínima para contar un píxel como tinta
+
+
+def _luminancia_relativa(gris):
+    """Luminancia relativa sRGB de un valor 0-255 (fórmula WCAG)."""
+    c = gris / 255.0
+    c = c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+    return c
+
+
+def _medir_arte(png):
+    """(bbox de la tinta, contraste texto/fondo, (w, h)) de un PNG.
+
+    La tinta usa un umbral ABSOLUTO de luminancia: un percentil se dispara
+    con el grano/textura de los fondos oscuros y devuelve cajas falsas.
+    """
+    im = Image.open(str(png)).convert("L")
+    w, h = im.size
+    hist = im.histogram()
+    corte = TINTA_UMBRAL
+    bbox = im.point(lambda v: 255 if v >= corte else 0).getbbox()
+    fondo = max(range(256), key=lambda v: hist[v])  # moda = fondo dominante
+    l_claro = _luminancia_relativa(max(fondo, corte))
+    l_oscuro = _luminancia_relativa(min(fondo, corte))
+    contraste = (l_claro + 0.05) / (l_oscuro + 0.05)
+    return bbox, contraste, (w, h)
+
+
+def revisar_arte(preview_dir, nombres):
+    """Devuelve (avisos, resumen) de borde y contraste de los PNG renderizados."""
+    if Image is None:
+        return [], ""
+    avisos = []
+    top_min = bot_min = cont_min = None
+    for nombre in nombres:
+        png = preview_dir / Path(nombre).with_suffix(".png")
+        if not png.exists():
+            continue
+        try:
+            bbox, contraste, (_w, h) = _medir_arte(png)
+        except Exception:  # noqa: BLE001
+            continue
+        if bbox:
+            dist_top, dist_bot = bbox[1], h - bbox[3]
+            top_min = dist_top if top_min is None else min(top_min, dist_top)
+            bot_min = dist_bot if bot_min is None else min(bot_min, dist_bot)
+            if dist_top < BORDE_SEGURO:
+                avisos.append(f"{png.stem}: la tinta toca el borde superior "
+                              f"({dist_top}px < {BORDE_SEGURO}px)")
+            if dist_bot < BORDE_SEGURO:
+                avisos.append(f"{png.stem}: la tinta toca el borde inferior "
+                              f"({dist_bot}px < {BORDE_SEGURO}px)")
+        cont_min = contraste if cont_min is None else min(cont_min, contraste)
+        if contraste < _CONTRASTE_MIN:
+            avisos.append(
+                f"{png.stem}: contraste texto/fondo bajo ({contraste:.1f}:1)")
+    resumen = ""
+    if top_min is not None:
+        resumen = (f"tinta desde {top_min}px arriba y {bot_min}px abajo · "
+                   f"contraste mín {cont_min:.1f}:1")
+    return avisos, resumen
+
+
 # ── Puente-recap: las 3 ideas clave del propio carrusel ────────────
 
-def _texto_titulo(body):
-    """Primer .titulo del body en texto plano (sin tags ni entidades)."""
-    m = re.search(r'<div class="titulo">(.*?)</div>', body or "", re.DOTALL)
+# Límites de copy del guion (documentados en SKILL.md).
+HOOK_MAX_PALABRAS = 8
+CUERPO_MAX_PALABRAS = 45
+
+
+def _texto_de(body, clase):
+    """Primer <div class="clase"> del body en texto plano (sin tags ni entidades)."""
+    m = re.search(r'<div class="' + re.escape(clase) + r'">(.*?)</div>',
+                  body or "", re.DOTALL)
     if not m:
         return ""
     txt = re.sub(r"<[^>]+>", "", m.group(1))
@@ -1298,6 +1526,11 @@ def _texto_titulo(body):
               .replace("&lt;", "<").replace("&gt;", ">")
               .replace("&quot;", '"'))
     return re.sub(r"\s+", " ", txt).strip()
+
+
+def _texto_titulo(body):
+    """Primer .titulo del body en texto plano."""
+    return _texto_de(body, "titulo")
 
 
 def _landing_dominio(url):
@@ -1882,7 +2115,7 @@ __links_fuentes__
     background:
       radial-gradient(circle at 85% 8%, __accent_rgba__, transparent 45%),
       radial-gradient(circle at 8% 92%, var(--acento-rgba-b), transparent 45%),
-      __estrellas__,
+      __fondo_story__,
       #0B0B0D;
   }
   .isotipo { width: 130px; margin-bottom: 70px;
@@ -2016,7 +2249,7 @@ def generar_story(input_dir: Path, display, resalte_hex, isotipo,
         "__accent_rgba_40__": accent_vars["accent_rgba_40"],
         # El story usa las mismas capas que la portada (sin textura ni grano)
         # para no quedar con el fondo viejo mientras los slides ya lo cambiaron.
-        "__estrellas__": _fondos.fondo_simple(
+        "__fondo_story__": _fondos.fondo_simple(
             accent_vars.get("rgb", (250, 204, 21)), "cover"),
         "__resalte_rgba32__": f"rgba({rr},{rg},{rb},0.32)",
         "__resalte__": resalte_hex,
@@ -2121,15 +2354,146 @@ def _generar_slides_auto(input_dir, n, vertical, display, short, marca, slug,
     return _slides_existentes(input_dir)
 
 
-def main():
+def revisar_fuente(slides, n, permitidos=None):
+    """Validación rápida SIN Chromium: props, copy, keywords y componentes.
+
+    Devuelve (errores, avisos). Los dos últimos slides los reescribe el
+    builder, así que no se validan como copy.
+    """
+    errores, avisos = [], []
+    for i, src in enumerate(slides, 1):
+        try:
+            body = parse_slide(src).get("body", "")
+        except Exception as e:  # noqa: BLE001
+            errores.append(f"slide {i}: no se pudo leer ({e})")
+            continue
+        errores += validar_props(body, src.name)
+        if not (1 <= i <= n - 2):
+            continue
+        titulo = _texto_titulo(body)
+        if not titulo:
+            errores.append(f'slide {i}: sin <div class="titulo">')
+        if i == 1:
+            pal = len(titulo.split())
+            if pal > HOOK_MAX_PALABRAS:
+                avisos.append(f"slide 1: hook de {pal} palabras "
+                              f"(máx {HOOK_MAX_PALABRAS})")
+        pal_c = len(_texto_de(body, "cuerpo").split())
+        if pal_c > CUERPO_MAX_PALABRAS:
+            avisos.append(f"slide {i}: cuerpo de {pal_c} palabras "
+                          f"(máx {CUERPO_MAX_PALABRAS})")
+        m_tit = re.search(r'<div class="titulo">(.*?)</div>', body, re.DOTALL)
+        claves = contar_claves(m_tit.group(1) if m_tit else "")
+        if claves > 2:
+            avisos.append(f"slide {i}: {claves} keywords en el título (máx 2)")
+        if permitidos and i > 1:  # el gancho de la portada lo elige el builder
+            for comp in re.findall(r'data-component="([^"]+)"', body):
+                if comp.lower() not in permitidos:
+                    avisos.append(f"slide {i}: componente '{comp}' fuera de "
+                                  f"la lista permitida")
+    return errores, avisos
+
+
+# ── Modo lote: varios posts desde un manifest JSON ─────────────────
+
+_CLAVES_LOTE = {
+    "tema": "--tema", "color": "--color", "slides": "--slides",
+    "formato": "--formato", "vertical": "--vertical", "iconos": "--iconos",
+    "fondo": "--fondo", "componentes": "--componentes", "preset": "--preset",
+    "landing": "--landing", "landing2": "--landing2",
+    "landing2_texto": "--landing2-texto", "marca": "--marca",
+    "display_tema": "--display-tema", "short_tema": "--short-tema",
+    "badge": "--badge", "cta_palabra": "--cta-palabra",
+    "cta_modo": "--cta-modo", "hashtags": "--hashtags",
+    "resalte": "--resalte", "workers": "--workers", "repo": "--repo",
+    "guia_titulo": "--guia-titulo", "guia_sub": "--guia-sub",
+}
+_BOOL_LOTE = {
+    "sin_placa": "--sin-placa", "fondo_fijo": "--fondo-fijo",
+    "solo_story": "--solo-story", "solo_html": "--solo-html",
+    "incremental": "--incremental", "sin_autofit": "--sin-autofit",
+    "contact_sheet": "--contact-sheet", "pdf": "--pdf", "reel": "--reel",
+    "copy_redes": "--copy-redes", "sin_guia": "--sin-guia",
+    "offline": "--offline", "no_auto": "--no-auto", "check": "--check",
+}
+
+
+def _argv_de_cfg(cfg):
+    """Convierte un dict del manifest en argv para main()."""
+    if not isinstance(cfg, dict):
+        raise SystemExit(f"Cada post del manifest debe ser un objeto JSON, "
+                         f"llegó {type(cfg).__name__}.")
+    argv = []
+    for clave, valor in cfg.items():
+        if valor is None:
+            continue
+        if clave == "args":                      # escape: argv explícito
+            argv += [str(a) for a in valor]
+        elif clave in _BOOL_LOTE:
+            if valor:
+                argv.append(_BOOL_LOTE[clave])
+        elif clave in _CLAVES_LOTE:
+            argv += [_CLAVES_LOTE[clave], str(valor)]
+        else:
+            raise SystemExit(f"Clave desconocida en el manifest: {clave!r}")
+    return argv
+
+
+def _extras_de(args):
+    """Flags globales del lote que se propagan a cada post."""
+    extras = []
+    if args.workers:
+        extras += ["--workers", str(args.workers)]
+    if args.offline:
+        extras.append("--offline")
+    if args.marca and args.marca != MARCA_DEFECTO:
+        extras += ["--marca", args.marca]
+    return extras
+
+
+def correr_lote(ruta, extras=()):
+    """Renderiza varios posts desde un manifest JSON, uno tras otro."""
+    path = Path(ruta)
+    if not path.exists():
+        sys.exit(f"No existe el manifest: {path}")
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        sys.exit(f"Manifest inválido ({e.lineno}:{e.colno}): {e.msg}")
+    posts = data.get("posts") if isinstance(data, dict) else data
+    if not isinstance(posts, list) or not posts:
+        sys.exit("El manifest necesita una lista 'posts' con al menos un post.")
+    print(f"\n  Lote: {len(posts)} post(s) desde {path.name}")
+    fallos = []
+    for i, cfg in enumerate(posts, 1):
+        nombre = cfg.get("tema", f"post-{i}") if isinstance(cfg, dict) \
+            else f"post-{i}"
+        print(f"\n═══ [{i}/{len(posts)}] {nombre} ═══")
+        try:
+            main(_argv_de_cfg(cfg) + list(extras))
+        except SystemExit as e:
+            if e.code not in (0, None):
+                fallos.append(nombre)
+                print(f"  ✗ {nombre} falló; sigo con el siguiente.")
+    if fallos:
+        print(f"\n  ✗ Lote incompleto: {len(fallos)}/{len(posts)} fallaron "
+              f"({', '.join(fallos)}).")
+        sys.exit(1)
+    print(f"\n  ✓ Lote completo: {len(posts)} post(s) procesados.")
+
+
+def main(argv=None):
     ap = argparse.ArgumentParser(description="TechEdu carousel builder")
-    ap.add_argument("--tema", required=True, help="Carpeta fuente en CTSLIDER")
-    ap.add_argument("--color", required=True,
-                    help="Color de acento: #RRGGBB o nombre de paleta")
-    ap.add_argument("--slides", required=True, type=int,
-                    help="Cantidad de diapositivas (debe coincidir con slide-*.html)")
+    ap.add_argument("--tema",
+                    help="Carpeta fuente en CTSLIDER (obligatorio salvo --lote)")
+    ap.add_argument("--color",
+                    help="Color de acento: #RRGGBB o nombre de paleta "
+                         "(obligatorio)")
+    ap.add_argument("--slides", type=int,
+                    help="Cantidad de diapositivas (debe coincidir con "
+                         "slide-*.html; obligatorio)")
     ap.add_argument("--formato", default="9:16",
-                    choices=["9:16", "3:4", "4:5", "1:1"])
+                    choices=["9:16", "2:3", "3:4", "4:5", "1:1", "16:9"])
     ap.add_argument("--vertical", default="auto",
                     choices=["auto", "cybersec", "prog", "ai", "infra"],
                     help="Guía de auto-detección de íconos y del banco de copy "
@@ -2139,7 +2503,8 @@ def main():
     ap.add_argument("--sin-placa", action="store_true",
                     help="iconos en modo clásico (sin placa duotono)")
     ap.add_argument("--fondo", default="auto", choices=list(_fondos.VARIANTES),
-                    help="fondo del slide (auto = según rol y vertical)")
+                    help="fondo del slide (auto = circuitos, el de la casa; "
+                         "solo cambia la intensidad del mesh según el rol)")
     ap.add_argument("--fondo-fijo", action="store_true",
                     help="mismo fondo en todos los slides (perfil contenido)")
     ap.add_argument("--componentes", default="auto",
@@ -2199,7 +2564,21 @@ def main():
                     help="No enlaza Google Fonts: render con fuentes locales")
     ap.add_argument("--no-auto", action="store_true",
                     help="No escribe slide-*.html si faltan (falla con aviso)")
-    args = ap.parse_args()
+    ap.add_argument("--check", action="store_true",
+                    help="Solo valida (props, copy, keywords y componentes) "
+                         "sin renderizar: segundos, ideal para iterar el copy")
+    ap.add_argument("--lote", default=None, metavar="MANIFEST.json",
+                    help="Renderiza varios posts desde un manifest JSON "
+                         "(clave 'posts': lista de objetos con las mismas "
+                         "claves del CLI, ej: tema, color, slides, preset)")
+    args = ap.parse_args(argv)
+
+    if args.lote:
+        return correr_lote(args.lote, extras=_extras_de(args))
+
+    if not args.tema or not args.color or not args.slides:
+        ap.error("--tema, --color y --slides son obligatorios "
+                 "(o usá --lote con un manifest JSON).")
 
     # ── Chromium en paralelo ──
     if args.workers and args.workers > 0:
@@ -2337,6 +2716,20 @@ def main():
 
     _fonts.set_offline(args.offline)
 
+    # ── --check: validación completa sin tocar Chromium ni escribir PNG ──
+    if args.check:
+        errores_chk, avisos_chk = revisar_fuente(slides, n, permitidos_preset)
+        print(f"\n  Chequeo de {n} slide(s) en {input_dir.name} "
+              f"({args.formato}, {cat})...")
+        for e in errores_chk:
+            print(f"    ✗ {e}")
+        for a in avisos_chk:
+            print(f"    ! {a}")
+        if not errores_chk and not avisos_chk:
+            print("  ✓ Sin problemas: props, copy, keywords y componentes OK.")
+        print("\n  (--check: solo validación; no se renderizó nada)")
+        sys.exit(1 if errores_chk else 0)
+
     # ── Fail-fast: props de componentes antes de tocar Chromium ──
     errores_props = []
     for src in slides:
@@ -2391,6 +2784,20 @@ def main():
     for i, src in enumerate(slides, 1):
         data = parse_slide(src)
         slide_warnings = []
+        # QA de copy: el gancho manda y el cuerpo no debe pasar de 3 líneas.
+        # Los dos últimos slides (puente y CTA) los reescribe el builder.
+        if 1 <= i <= n - 2:
+            cuerpo_src = data.get("body", "")
+            pal_t = len(_texto_titulo(cuerpo_src).split())
+            if i == 1 and pal_t > HOOK_MAX_PALABRAS:
+                slide_warnings.append(
+                    f"hook de portada de {pal_t} palabras "
+                    f"(máx {HOOK_MAX_PALABRAS})")
+            pal_c = len(_texto_de(cuerpo_src, "cuerpo").split())
+            if pal_c > CUERPO_MAX_PALABRAS:
+                slide_warnings.append(
+                    f"cuerpo de {pal_c} palabras (máx {CUERPO_MAX_PALABRAS}); "
+                    f"puede pasar de 3 líneas")
         # Icono semántico: el texto del slide (título, cuerpo y props de los
         # componentes) decide el glyph; si no matchea, cae al rol.
         texto_ico = re.sub(r'data-component="[^"]*"', " ",
@@ -2418,7 +2825,7 @@ def main():
                             categoria=cat,
                             fondo=args.fondo,
                             fondo_fijo=args.fondo_fijo)
-        if permitidos is not None:
+        if permitidos is not None and i > 1:
             for w in slide_warnings:
                 if "componente" in w and not any(
                         p in w.lower() for p in permitidos):
@@ -2435,8 +2842,20 @@ def main():
             print(f"    ! {w}")
 
     nombres_html = [f"slide-{i:02d}.html" for i in range(1, n + 1)]
+
     print("\n  Midiendo títulos para la regla de keywords...")
     ajustar_claves_por_lineas(final_dir, nombres_html, fmt["w"], fmt["h"])
+
+    # Portada: recién ahora las .clave están puestas (van a 1.15em y
+    # agrandan el título), así que la medición del tamaño es la real. Se
+    # recalcula la regla de keywords solo para la portada.
+    if not args.sin_autofit:
+        tam_portada = ajustar_titulo_portada(final_dir, args.formato)
+        if tam_portada:
+            print(f"  ✓ Título de portada: {tam_portada}px "
+                  f"(el mayor que cabe).")
+            ajustar_claves_por_lineas(final_dir, ["slide-01.html"],
+                                      fmt["w"], fmt["h"])
 
     # ── Auto-fit: baja el zoom del contenido hasta que nada recorte ──
     if not args.sin_autofit:
@@ -2483,6 +2902,14 @@ def main():
     if args.reel:
         print("\n  Exportando reel MP4...")
         exportar_reel(input_dir, nombres_html, fmt)
+
+    avisos_arte, resumen_arte = revisar_arte(preview, nombres_html)
+    if resumen_arte:
+        print(f"\n  ✓ Arte: {resumen_arte}")
+    if avisos_arte:
+        print("  ! Revisión de arte:")
+        for a in avisos_arte:
+            print(f"    - {a}")
 
     avisos_rep = qa_repeticion(input_dir, nombres_html)
     if avisos_rep:

@@ -9,7 +9,7 @@ import pytest
 from tech_carousel import _format_scaling
 from theme import tokens
 
-FORMATOS = ["9:16", "4:5", "3:4", "1:1"]
+FORMATOS = ["9:16", "2:3", "3:4", "4:5", "1:1", "16:9"]
 
 
 @pytest.mark.parametrize("fmt", FORMATOS)
@@ -72,7 +72,59 @@ def test_css_de_componentes_usa_los_tokens():
     assert ".slide {" in TEMPLATE and "__body_size__" in TEMPLATE
 
 
+def test_formatos_nuevos_apaisado_y_23():
+    """16:9 (X/YouTube) y 2:3 (vertical extra) entran con su escalado."""
+    from tech_carousel import FORMATOS as DIMS
+
+    assert DIMS["16:9"] == {"w": 1920, "h": 1080}
+    assert DIMS["2:3"] == {"w": 1080, "h": 1620}
+    vertical = _format_scaling("9:16")
+    ancho = _format_scaling("16:9")
+    # Apaisado: columna más estrecha y shell más chico.
+    assert ancho["__pad_lr__"] > vertical["__pad_lr__"]
+    assert ancho["__title_size__"] < vertical["__title_size__"]
+    assert ancho["__comp_zoom__"] == 0.72
+    # 2:3 tiene más aire vertical que 4:5 (título más grande).
+    assert _format_scaling("2:3")["__title_size__"] > \
+        _format_scaling("4:5")["__title_size__"]
+    assert _format_scaling("2:3")["__pad_bottom__"] > \
+        _format_scaling("4:5")["__pad_bottom__"]
+
+
 @pytest.mark.parametrize("fmt", FORMATOS)
 def test_todos_los_formatos_tienen_la_misma_clave_de_datos(fmt):
     base = set(_format_scaling("9:16"))
     assert set(_format_scaling(fmt)) == base
+
+
+# ── Portada: título grande y en mayúsculas ──────────────────────────
+
+@pytest.mark.parametrize("fmt", FORMATOS)
+def test_portada_tiene_titulo_propio_mas_grande(fmt):
+    sc = _format_scaling(fmt)
+    assert "__cover_title__" in sc
+    assert sc["__cover_title__"] > sc["__title_size__"]
+
+
+def test_portada_grande_pero_sin_rebasar_el_auto_fit():
+    """El valor nace de una medición real en Chromium.
+
+    Con 1.47× la portada más apretada de los carruseles reales (terminal
+    alto) entra sin que el auto-fit tenga que encoger el contenido.
+    """
+    assert _format_scaling("9:16")["__cover_title__"] == 112
+    for fmt in FORMATOS:
+        sc = _format_scaling(fmt)
+        assert sc["__title_size__"] * 1.4 <= sc["__cover_title__"] <= sc["__title_size__"] * 1.55
+
+
+def test_css_de_portada_va_en_mayusculas_y_usa_el_token():
+    from tech_carousel import TEMPLATE
+
+    assert ".slide.cover .titulo {" in TEMPLATE
+    bloque = TEMPLATE.split(".slide.cover .titulo {", 1)[1].split("}", 1)[0]
+    assert "font-size: __cover_title__px" in bloque
+    assert "text-transform: uppercase" in bloque
+    # La palabra clave no pierde su color de acento.
+    assert ".slide.cover .titulo .clave" in TEMPLATE
+    assert "color: var(--resalte)" in TEMPLATE

@@ -101,13 +101,37 @@ def test_el_rol_cambia_el_mesh():
     assert _capas(cub["fondo"]) > _capas(con["fondo"])
 
 
-def test_el_vertical_elige_la_textura():
-    assert "circuitos" in fondos.TEXTURA_VERTICAL["cybersec"]
-    dev = fondos.fondo(vertical="dev", variante="auto")
-    ai = fondos.fondo(vertical="ai", variante="auto")
-    # la textura de dev (grid repetido) usa px; la de ai (svg) usa 100% 100%
-    assert "px" in dev["textura_size"]
-    assert ai["textura_size"].startswith("100% 100%")
+def test_el_fondo_por_defecto_es_circuito():
+    """La casa usa circuitos en TODOS los verticales y roles."""
+    assert fondos.VARIANTE_DEFECTO == "circuitos"
+    for vertical in ("cybersec", "dev", "ai", "infra", "data", "tech"):
+        f = fondos.fondo(vertical=vertical, variante="auto")
+        assert f["textura_size"].startswith("100% 100%"), vertical
+        assert "svg" in f["textura"], vertical
+    # `auto` y `circuitos` explícito dan el mismo look, código incluido
+    auto = fondos.fondo(vertical="dev", variante="auto", comandos=["ls -la"])
+    circ = fondos.fondo(vertical="dev", variante="circuitos",
+                        comandos=["ls -la"])
+    assert auto["fondo"] == circ["fondo"]
+    assert auto["textura"] == circ["textura"]
+    assert auto["codigo"] == circ["codigo"] != ""
+
+
+def test_las_estrellas_ya_no_existen():
+    """Se fueron por completo: ni capas blancas, ni el módulo, ni la tabla."""
+    import importlib
+
+    import pytest
+
+    with pytest.raises(ModuleNotFoundError):
+        importlib.import_module("theme.stars")
+    assert not hasattr(fondos, "TEXTURA_VERTICAL")
+    for v in fondos.VARIANTES:
+        for rol in fondos.ROLES:
+            capas = fondos.fondo(rol=rol, variante=v)["fondo"]
+            assert "255,255,255" not in capas, (v, rol)
+            # la viñeta sigue: es lo que apaga los bordes y centra la atención
+            assert "radial-gradient(ellipse 74% 60%" in capas, (v, rol)
 
 
 def test_grano_presente_salvo_en_base():

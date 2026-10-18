@@ -81,11 +81,11 @@ python3 ~/.config/opencode/skills/tech-carousel/tech_carousel.py \
 | `--tema` | sí | Carpeta fuente en CTSLIDER |
 | `--color` | **sí** | HEX `#RRGGBB` o nombre de paleta |
 | `--slides` | **sí** | Cantidad de diapositivas (debe coincidir con `slide-*.html` reales) |
-| `--formato` | no | `9:16` (default) · `3:4` · `4:5` · `1:1` |
+| `--formato` | no | `9:16` (default) · `2:3` · `3:4` · `4:5` · `1:1` · `16:9` |
 | `--vertical` | no | `auto` (default: se deduce del slug) o fijo `cybersec\|prog\|ai\|infra` |
 | `--iconos` | no | `auto` (default) o `--iconos <categoria>` |
 | `--sin-placa` | no | Iconos en modo clásico (sin la placa duotono) |
-| `--fondo` | no | `auto` (default: por rol + vertical) · `base` (look clásico de estrellas) · `mesh` · `grid` · `puntos` · `circuitos` · `nodos` · `topologia` · `beams` · `codigo` |
+| `--fondo` | no | `auto` (default: **circuitos**, el fondo de la casa) · `circuitos` · `mesh` · `grid` · `puntos` · `nodos` · `topologia` · `beams` · `codigo` · `base` (liso: sin textura ni grano) |
 | `--fondo-fijo` | no | Mismo fondo en todos los slides (desactiva la variación por rol) |
 | `--componentes` | no | `auto` (default) o lista fijada `terminal,card-compare` |
 | `--preset` | no | `repo` · `comandos` · `python` · `mixto` (default: receta tipo de post) |
@@ -112,6 +112,8 @@ python3 ~/.config/opencode/skills/tech-carousel/tech_carousel.py \
 | `--copy-redes` | no | Además de `caption.txt`, escribe `copy-redes.md` (IG/TikTok/FB/Story) |
 | `--offline` | no | No enlaza Google Fonts: render con fuentes locales (para Chromium sin red) |
 | `--no-auto` | no | No escribir copy si falta la carpeta: falla explicando qué hacer |
+| `--check` | no | **Preflight sin render**: valida props, límites de copy (hook ≤8 palabras, cuerpo ≤45), keywords por título y componentes fuera de la lista, y sale (segundos). Ideal para iterar el guion |
+| `--lote` | no | `MANIFEST.json` con `{"posts":[{…}]}`: renderiza varios posts en serie. Cada post usa las mismas claves del CLI (`tema`, `color`, `slides`, `preset`, `landing`…) o `args` con argv explícito |
 
 **1 comando = copy + HTML + PNG + verificación.** Si la carpeta fuente no existe, el mismo comando la crea con el copy de los `N` slides (y `story-fuente.html`) y sigue. Usá `--no-auto` cuando quieras controlar vos los slides fuente.
 
@@ -131,7 +133,7 @@ Usá **`tech-carousel`** si el tema es técnico. Usá **`crear-carousel`** si es
 
 ## Estructura viral de 7-10 slides (requerida)
 
-1. **Slide 1 (Portada/Hook):** título MÁXIMO 8 palabras (tensión técnica legítima, no engañosa) + subtítulo MÁXIMO 2 líneas + **1 componente gancho** (terminal con evidencia por default, desde `HOOK_COMPS` de cada vertical en `copywriting/`). La portada es el slide más importante: es lo que frena el scroll y decide si guardan el post. El builder conserva el componente tras el subtítulo (ver `generar_html()` rama `i == 1`).
+1. **Slide 1 (Portada/Hook):** título MÁXIMO 8 palabras (tensión técnica legítima, no engañosa) + subtítulo MÁXIMO 2 líneas + **1 componente gancho** (terminal con evidencia por default, desde `HOOK_COMPS` de cada vertical en `copywriting/`). La portada es el slide más importante: es lo que frena el scroll y decide si guardan el post. El builder conserva el componente tras el subtítulo (ver `generar_html()` rama `i == 1`). **El título de portada va en MAYÚSCULAS y se mide para quedar lo más grande posible**: parte de `__cover_title__` (`__title_size__` × 1.47) y después `ajustar_titulo_portada()` barre candidatos en Chromium (de 2.2× a 1.0×) y deja el mayor que entra sin recortar (con las `.clave` ya puestas, que van a 1.15em). Las `.clave` conservan su color `--resalte` y ganan glow propio.
 2. **Slides 2..N-2 (Contenido de valor):** MÁXIMO 3 líneas de texto por slide (40-50 palabras), 1 idea clara. Usá `.clave` en 1-2 keywords. Concepto largo → dividiólo en 2 slides.
 3. **Slide N-1 (Puente-recap):** el script arma "Antes del final: el resumen" con checklist de las 3 ideas clave extraídas del propio carrusel (títulos de inicio/medio/cierre, 7 palabras máx). Sin títulos suficientes, usa una frase puente del banco `PUENTES`. Con `--landing`, el título pasa a "Ver no es hacer: empieza a programar hoy" y se agrega una mini-card con el dominio (curso + Telegram). No generar copy manual.
 4. **Slide N (CTA final):** el script inyecta "¿Listo para aplicarlo?", terminal con TODOS los comandos del carrusel, card gigante "COPIA LOS COMANDOS DEL PRIMER COMENTARIO", botón CTA y línea de cierre. `--cta-modo comentar` (default): botón "Comenta [PALABRA] y te paso la checklist completa". `--cta-modo seguir`: botón "SÍGUENOS Y NO TE PIERDAS LO QUE SIGUE" + "Guarda este carrusel: lo vas a necesitar · El próximo tema lo eligen los seguidores" (gatillos de pérdida + pertenencia). Con `--landing` se reemplaza ese bloque: título "De mirar a programar", terminal (máx 6 comandos), card gigante con el dominio + "Curso de Python completo y canal de Telegram" + botón "EMPIEZA EN [DOMINIO]" (sin flecha), y línea fina "Todos los comandos completos están en el primer comentario". NO generar copy manual.
@@ -276,6 +278,24 @@ temprano** en el texto y se exige **límite de palabra** (así `pipeline` no cae
 | Puente (N-1) | `list-checks` / `target` / `flag` / `check` |
 | Cierre (N) | `rocket` / `arrow-right` / `check` / `target` |
 
+### Iconos de marca (`icons/marcas.py`)
+
+Además de los conceptos hay un set de **marcas reales** (Docker, Kubernetes, Python, Git,
+GitHub, GitLab, Nginx, Apache, Node, React, Vue, Angular, Svelte, JS, TS, HTML, CSS,
+Linux, Ubuntu, Debian, Kali, Postgres, MySQL, Mongo, Redis, SQLite, Terraform, Ansible,
+AWS, GCP, Vercel, Netlify, Supabase, Tailscale, WireGuard, Tor, Rust, Go, C, C++, Java,
+PHP, Ruby, Django, Flask, FastAPI, Kafka, OpenAI, PyTorch, TensorFlow, Jupyter… **101
+glyphs**). Los paths vienen de **Simple Icons v13** (CC0, `viewBox 24x24`) y están
+**vendoreados** en el repo: no se descarga nada al renderizar. Lucide no tiene logos, así
+que estos son siluetas **rellenas** con el gradiente de la casa (`fill="url(#c)"`, sin stroke).
+
+Reglas: las marcas se evalúan **después** de los conceptos y exigen **límite de palabra en
+ambos extremos** — `go` no cae en "google", `c` no en "config", `git` no en "digital" —, así
+que nunca le roban el lugar a un concepto genérico. Alias útiles: `node/nodejs`→nodedotjs,
+`k8s`→kubernetes, `postgres/psql`→postgresql, `aws`→amazonwebservices, `bash/shell`→gnubash,
+`js`→javascript, `ts`→typescript, `golang`→go, `c++`→cplusplus, `mongo`→mongodb,
+`chatgpt`→openai. Verificación: `python3 -m icons.registry --test marcas`.
+
 ### Estilo: placa duotono + glow
 
 Los iconos se pintan dentro de una **placa** (esquina redondeada, relleno de
@@ -311,26 +331,32 @@ filtros SVG, `fill="none"`, y el color siempre por `url(#c)`.
 ### Fondo del slide (`--fondo` + `theme/fondos.py`)
 
 El fondo se compone en dos capas deterministas (misma semilla → mismo render
-en los 4 formatos, todo en % del lienzo):
+en los 6 formatos, todo en % del lienzo):
 
-- `.slide::before` — viñeta + estrellas + **mesh** de radiales del acento + degradado base.
+- `.slide::before` — viñeta + **mesh** de radiales del acento + degradado base.
 - `.slide::after` — **textura** (enmascarada) + **grano** anti-banding (`feTurbulence` al ~5 %, mínimo pero rompe el banding en OLED).
 
-`--fondo auto` (default) elige por **rol** y por **vertical**:
+**El fondo de la casa son los circuitos** (`VARIANTE_DEFECTO`): `auto` —y por lo
+tanto el default de `--fondo`— los usa en **todos los verticales y roles**, y solo
+cambia la intensidad del mesh según el rol:
 
-| Rol del slide | Mesh | Textura por vertical |
-|---|---|---|
-| Portada | 3 glows, fuerte | `cybersec` → circuitos · `prog` → grid · `ai` → nodos · `infra` → topología · resto → puntos |
-| Contenido | 2 glows suaves | (igual, según el vertical) |
-| Puente | foco central | |
-| Cierre | glow potente desde abajo | |
+| Rol del slide | Mesh |
+|---|---|
+| Portada | 3 glows, fuerte |
+| Contenido | 2 glows suaves |
+| Puente | foco central |
+| Cierre | glow potente desde abajo |
 
-Además, `auto` inyecta el **código fantasma**: los comandos reales del carrusel
-al 5 % de opacidad detrás del contenido (con números de línea en acento).
+Además, el fondo de la casa inyecta el **código fantasma**: los comandos reales
+del carrusel al 5 % de opacidad detrás del contenido (con números de línea en acento).
 
-Variantes manuales: `base` (look clásico), `mesh`, `grid`, `puntos`,
-`circuitos`, `nodos`, `topologia`, `beams` (haces conic), `codigo`.
+Variantes manuales: `circuitos` (idéntico al default) · `mesh` · `grid` · `puntos` ·
+`nodos` · `topologia` · `beams` (haces conic) · `codigo` · `base` (liso: solo viñeta
++ dos radiales suaves + degradado plano, sin textura ni grano).
 `--fondo-fijo` usa el perfil «contenido» en todos los slides.
+
+**Sin estrellas:** el campo estrellado se eliminó por completo (ya no existe
+`theme/stars.py`); la profundidad la aporta la viñeta.
 
 Para **elegir mirando**, el comparador arma un contact-sheet con cada variante en
 una fila y cada rol en una columna:
@@ -411,9 +437,10 @@ python3 ~/.config/opencode/skills/tech-carousel/tech_carousel.py \
 
 Salidas en la carpeta del tema: `renders/` (HTML), `preview/` (PNG), `stories/`, `caption.txt`.
 - Renderiza **en paralelo** (varios Chromium a la vez; `--workers` para fijarlo). Ajustá el conteo si la máquina se queda sin memoria.
-- Mide títulos en Chromium (`Range.getClientRects()`) para la regla de keywords: 1 línea → 1 `.clave`, 2-3 líneas → 2. Repite hasta 3 pasadas.
+- Mide títulos en Chromium (`Range.getClientRects()`) para la regla de keywords: 1 línea → 1 `.clave`, 2-3 líneas → 2. Repite hasta 3 pasadas. **La puntuación queda fuera del span** («…una fuga?» → `<span class="clave">fuga</span>?`, no `fuga?`).
+- Mide también la **portada**: `ajustar_titulo_portada()` barre tamaños de título en Chromium y deja el mayor que entra sin recortar (resetea el zoom del contenido). Se corre **después** de la regla de keywords, porque las `.clave` (1.15em) agrandan el título; luego recalcula la regla solo para `slide-01.html`.
 - Tinte dinámico del isotipo con `CTSLIDER/logo.png` en el color HEX pedido.
-- `--formato`: 9:16 → 1080×1920 · 3:4 → 1080×1440 · 4:5 → 1080×1350 · 1:1 → 1080×1080. El cuerpo del slide mide 44px (37 en 1:1) y el texto de los componentes nace de `__comp_base__` — 40px en 9:16/4:5/3:4 y 45px en 1:1 — inyectado en `.comp-wrap { font-size }`, porque ningún `.slide` fija `font-size` y sin eso los `em` de los componentes heredan los 16px del navegador (texto a mitad de tamaño). En formatos cortos el builder aligera además el shell en el dict `ajustes` de `_format_scaling()` (pad_top/pad_bottom/ícono/título), baja `__comp_zoom__` (0.80 en 4:5 y 3:4, 0.72 en 1:1) y en 1:1 oculta el chip `.ind-swipe`, que si no pisa el pie.
+- `--formato`: 9:16 → 1080×1920 · **2:3 → 1080×1620** · 3:4 → 1080×1440 · 4:5 → 1080×1350 · 1:1 → 1080×1080 · **16:9 → 1920×1080**. El cuerpo del slide mide 44px (37 en 1:1) y el texto de los componentes nace de `__comp_base__` — 40px en 9:16/2:3/4:5/3:4 y 45px en 1:1 — inyectado en `.comp-wrap { font-size }`, porque ningún `.slide` fija `font-size` y sin eso los `em` de los componentes heredan los 16px del navegador (texto a mitad de tamaño). En formatos cortos el builder aligera además el shell en el dict `ajustes` de `_format_scaling()` (pad_top/pad_bottom/ícono/título), baja `__comp_zoom__` (0.80 en 2:3/4:5/3:4, 0.72 en 1:1 y 16:9) y en 1:1 oculta el chip `.ind-swipe`, que si no pisa el pie. El apaisado (16:9) es un caso aparte: columna estrecha (`__pad_lr__` 300), shell chico y título de 54px, para que entre en 1080px de alto.
 - **Auto-fit (default):** antes de renderizar mide el recorte de `.contenido` y, si un slide desborda, baja el zoom de su envoltorio `.ajuste` (de 1.0 hasta el piso 0.70) hasta que entra. Termina con `✓ Sin recortes` o `! slide-XX: sigue recortando Npx (piso alcanzado; acortá el copy)`. Con `--sin-autofit` sólo avisa. El wrapper `.ajuste` (dentro de `.contenido`) es lo que permite escalar sin tocar el diseño base.
 - **Iteración rápida:** `--solo-html` escribe HTML + auto-fit sin PNG/story/copy; `--incremental` salta los slides cuyo HTML no cambió (hash) y reusa sus PNG.
 - **Exports opcionales:** `--contact-sheet` (grilla `contact-sheet.png`), `--pdf` (carrusel en PDF), `--reel` (MP4 vertical con ffmpeg).
@@ -424,6 +451,8 @@ Salidas en la carpeta del tema: `renders/` (HTML), `preview/` (PNG), `stories/`,
 - Cada PNG: ícono nítido, portada con badge + barra de progreso, N-1 con puente, N con botón de CTA, 1 clave por línea de título en `--resalte`, sin texto cortado.
 - Componentes: terminal/código legibles en el móvil, comparativas sin desborde, diagrama ≤5 nodos. Con `--contact-sheet`, revisá la grilla completa de un vistazo.
 - **QA de repetición (automática):** al terminar, el builder compara el contenido de los slides fuente y avisa si dos slides no consecutivos comparten ≥85% del texto, o si un mismo componente aparece en la mitad o más de los slides. Son avisos, no bloquean.
+- **Revisión de arte (automática):** sobre los PNG finales mide la **tinta** (umbral absoluto de luminancia, para no confundir el grano del fondo con texto) y avisa si la tinta toca el borde (contenido cortado) o si el contraste texto/fondo baja de 3:1. Imprime además un resumen: `✓ Arte: tinta desde Npx arriba y Mpx abajo · contraste mín X:1`.
+- **Preflight (`--check`):** corre props, límites de copy, keywords y componentes **sin Chromium ni PNG** (segundos). Usalo para iterar el guion antes de gastar render.
 - `caption.txt`: tema, palabra CTA, hashtags. Con `--landing`, verifica que arranque con el dominio (y el segundo enlace si usás `--landing2`).
 - Reportá carpeta de salida, categoría de íconos y conteo final.
 
@@ -457,7 +486,7 @@ python3 ~/.config/opencode/skills/tech-carousel/brief.py --dry-run  # sólo impr
 - **Píldora swipe:** padding 18px/32px, `min-height: __ind_h__px` (72 en 9:16, 56 en 4:5, 54 en 3:4, oculta en 1:1).
 - **Tipografía:** display **Inter** (títulos/cuerpo) + mono **Hasklig → JetBrains Mono** (código/terminal). El `font-family` del mono siempre termina en `SFMono-Regular, Menlo, Consolas, monospace` para que funcione offline.
 - **Fondo:** slides `#0B0B0D`, superficies `#141417`/`#1F2937`, bloques técnicos `#0F172A`, bordes `#26262B`/`#334155`.
-- **Cielo estrellado:** cada slide (y la story) lleva una capa de 77 gradientes —viñeta de profundidad + 68 estrellas tenues + 8 brillantes— en `.slide::before`, **por debajo** del contenido (`z-index: 1`) y con coordenadas en `%`, así el mismo CSS sirve para 9:16, 3:4, 4:5 y 1:1. Determinista (`theme/stars.py`, semilla fija): mismo tema → mismas estrellas en todos los renders.
+- **Fondo del slide:** viñeta + mesh del acento + degradado base en `.slide::before`, y circuitos (**por defecto**) + grano en `.slide::after`, **por debajo** del contenido (`z-index: 1`) y con coordenadas en `%`, así el mismo CSS sirve para 9:16, 2:3, 3:4, 4:5, 1:1 y 16:9. Determinista (`theme/fondos.py`, semilla fija): mismo tema → mismo fondo en todos los renders. Sin estrellas.
 - **Accesibilidad:** contraste AA mínimo. Si `--resalte` contra `#0B0B0D` no llega a 4.5:1, el builder avisa.
 
 ## Errores comunes
@@ -477,7 +506,7 @@ python3 ~/.config/opencode/skills/tech-carousel/brief.py --dry-run  # sólo impr
 | `! slide-XX: Npx de contenido recortadas` | El lienzo es más corto que el contenido (casi siempre 4:5/3:4/1:1 con componente grande). Acortá copy, bajá `__comp_zoom__` de ese formato o aligerá su dict `ajustes` (`__pad_top__`, `__icon_size__`, `__title_margin__`) en `_format_scaling()`. |
 | Color no reconocido | Hex `#RRGGBB` o nombre de paleta. |
 | Keywords con otro color del esperado | El color de `.clave` lo decide `--resalte` (**default: el mismo `--color`**); el `#FFB800` del HTML fuente es sólo previsualización y el builder lo descarta. |
-| Fondo sin estrellas / `__estrellas__` a la vista | Token sin reemplazar: pasá por `generar_html()`, nunca edites `renders/*.html` a mano. |
+| `__fondo_story__` / `__fondo_img__` a la vista | Token sin reemplazar: pasá por `generar_html()`, nunca edites `renders/*.html` a mano. |
 | Código no cabe | Más de 8 líneas visibles: dividió en 2 slides. |
 
 ## Regla de oro

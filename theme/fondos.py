@@ -1,21 +1,23 @@
 """Fondos deterministas para los slides.
 
 Todo se define en % del lienzo (o en un viewBox 1080×1920) con semilla fija:
-el mismo CSS sirve para 1080×1920, 1440, 1350 y 1080, y el render es
+el mismo CSS sirve para 1080×1920, 1620, 1440, 1350 y 1080, y el render es
 reproducible slide a slide.
 
 Composición
 -----------
 `.slide::before` (todas las capas cubren el área completa, sin background-size):
     1. viñeta     — apaga los bordes y centra la atención
-    2. estrellas  — campo sutil de profundidad
-    3. mesh       — radiales del color de acento (intensidad por rol)
-    4. base       — degradado vertical del negro
+    2. mesh       — radiales del color de acento (intensidad por rol)
+    3. base       — degradado vertical del negro
 
 `.slide::after` (texturas, con `background-size` y máscara propias):
-    · grid técnico / puntos / circuitos / nodos / topología / beams
-    · grano anti-banding (feTurbulence, ~4 % de opacidad)
+    · circuitos (por defecto) / grid / puntos / nodos / topología / beams
+    · grano anti-banding (feTurbulence, ~5 % de opacidad)
     La máscara las desvanece hacia los bordes.
+
+El fondo de la casa son los **circuitos** (`VARIANTE_DEFECTO`): `auto` —y por
+lo tanto el default de `--fondo`— los usa en todos los verticales y roles.
 
 `--fondo-fijo` (fuera de este módulo) fuerza el rol «contenido» para todos los
 slides; acá `rol` decide la intensidad del mesh y la forma del código fantasma.
@@ -27,28 +29,17 @@ import base64
 import html as _html
 import random
 
-from . import stars as _stars
-
 NEGRO = "0,0,0"
 SEMILLA = 20261018
 
-# Variantes aceptadas por --fondo (auto = la composición por rol+vertical).
+# Variantes aceptadas por --fondo (auto = el fondo de la casa: circuitos).
 VARIANTES = ("auto", "base", "mesh", "grid", "puntos", "circuitos", "nodos",
              "topologia", "beams", "codigo")
 
 TEXTURAS = ("grid", "puntos", "circuitos", "nodos", "topologia", "beams")
 
-# Textura sugerida según el vertical del tema.
-TEXTURA_VERTICAL = {
-    "cybersec": "circuitos",
-    "dev": "grid",
-    "ai": "nodos",
-    "infra": "topologia",
-    "data": "grid",
-    "educativo": "puntos",
-    "common": "puntos",
-    "tech": "puntos",
-}
+# El fondo de la casa: lo que usa `auto` en todos los verticales y roles.
+VARIANTE_DEFECTO = "circuitos"
 
 ROLES = ("cover", "contenido", "puente", "cierre")
 
@@ -66,6 +57,13 @@ _BASE = "linear-gradient(180deg, #111116 0%, #09090C 52%, #0B0B0D 100%)"
 
 
 # ── capas de ::before ──────────────────────────────────────────────
+
+def _vineta() -> str:
+    """Viñeta: oscurece los bordes y centra la atención en el contenido."""
+    return (f"radial-gradient(ellipse 74% 60% at 50% 46%, "
+            f"rgba({NEGRO},0) 0%, rgba({NEGRO},0.30) 66%, "
+            f"rgba({NEGRO},0.62) 100%)")
+
 
 def _mesh(rgb, rol: str, escala: float = 1.0):
     r, g, b = rgb
@@ -255,8 +253,8 @@ def codigo_html(comandos=None, semilla: int = SEMILLA, lineas: int = 30,
 # ── composición ────────────────────────────────────────────────────
 
 def capas_before(rgb, rol: str = "cover") -> list:
-    """Capas de `.slide::before`: viñeta + estrellas + mesh + degradado base."""
-    return _stars.capas_estrellas() + _mesh(rgb, rol) + [_BASE]
+    """Capas de `.slide::before`: viñeta + mesh + degradado base."""
+    return [_vineta()] + _mesh(rgb, rol) + [_BASE]
 
 
 def fondo_simple(rgb=(250, 204, 21), rol: str = "cover") -> str:
@@ -280,7 +278,8 @@ def fondo(rol: str = "contenido", vertical: str = "tech", rgb=(250, 204, 21),
     escala = _MESH_ESCALA.get(rol, 1.0) if variante == "mesh" else 1.0
     r, g, b = rgb
 
-    # ::before ─ "base" reproduce el look actual; el resto suma mesh propio.
+    # ::before ─ "base" es el look liso (sin textura ni grano); el resto
+    # suma el mesh propio del rol.
     if solo_base:
         # Ojo: background-image sólo acepta imágenes, no colores sueltos; el
         # negro final va como gradiente plano o Chromium descarta la regla.
@@ -289,15 +288,15 @@ def fondo(rol: str = "contenido", vertical: str = "tech", rgb=(250, 204, 21),
             " transparent 45%)",
             f"radial-gradient(circle at 8% 92%, rgba({r},{g},{b},0.10),"
             " transparent 45%)",
-        ] + _stars.capas_estrellas() + [f"linear-gradient(#0B0B0D, #0B0B0D)"]
+        ] + [_vineta()] + [f"linear-gradient(#0B0B0D, #0B0B0D)"]
     else:
-        capas = _stars.capas_estrellas()  # ya trae la viñeta primero
+        capas = [_vineta()]
         capas.extend(_mesh(rgb, rol, escala))
         capas.append(_BASE)
 
-    # ::after ─ textura (según vertical o variante) + grano anti-banding
+    # ::after ─ textura (el fondo de la casa o la pedida) + grano anti-banding
     if variante == "auto":
-        nombre = TEXTURA_VERTICAL.get(vertical, "puntos")
+        nombre = VARIANTE_DEFECTO
     elif variante in TEXTURAS:
         nombre = variante
     else:
@@ -307,8 +306,9 @@ def fondo(rol: str = "contenido", vertical: str = "tech", rgb=(250, 204, 21),
         img = img + [_grano()]
         tam = tam + ["140px 140px"]
 
-    # código fantasma: en auto solo cuando hay comandos reales
-    con_codigo = con_codigo and not solo_base and variante in ("auto", "codigo")
+    # código fantasma: en el fondo de la casa solo cuando hay comandos reales
+    con_codigo = con_codigo and not solo_base and variante in (
+        "auto", VARIANTE_DEFECTO, "codigo")
     codigo = codigo_html(comandos, semilla) if con_codigo else ""
 
     return {

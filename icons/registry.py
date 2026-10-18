@@ -20,6 +20,7 @@ from . import dev as _dev
 from . import genericos as _gen
 from . import infra as _infra
 from . import lucide_sets as _lucide
+from . import marcas as _marcas
 from .common import data_uri, glyph_svg
 
 try:  # Overlay local que escribe icon_smith.py (no se pisa al re-sincronizar).
@@ -69,6 +70,7 @@ CATEGORIAS = {
     "educativo": _combinar(_gen, "genericos"),
     "common": _combinar(_gen, "genericos"),
     "tech": _combinar(_gen, "genericos"),
+    "marcas": _combinar(_marcas, "marcas"),
 }
 
 # Compat con el nombre viejo (los builders importan TEMAS_SETS).
@@ -258,23 +260,42 @@ TEMA_GLYPHS = (
 )
 
 
+# ── Marcas (logos de tecnologías) ─────────────────────────────────
+# Reglas derivadas de `marcas.ALIAS`. A diferencia de TEMA_GLYPHS exigen
+# límite de palabra en AMBOS extremos: "go" no matchea en "google", "git" no
+# en "digital", "c" no en "configuracion"/"compilar". Van DESPUÉS de las
+# genéricas en el orden de desempate, así un concepto genérico ("docker" →
+# "container") conserva su lugar frente a la marca homónima.
+REGLAS_MARCAS = tuple(
+    ((alias,), glyph)
+    for alias, glyph in sorted(
+        _marcas.ALIAS.items(), key=lambda kv: (-len(kv[0]), kv[0])
+    )
+    if glyph in _marcas.GLYPHS
+)
+
+
 def glyph_por_texto(texto, usados=()):
     """Mejor glyph por palabra clave del texto; None si no hay match.
 
     Gana la clave que aparece MÁS TEMPRANO en el texto (empates: orden de
-    TEMA_GLYPHS). Requiere límite de palabra al inicio, para no confundir
-    "pipeline" con "pip" ni "funciona" con "funcion".
+    TEMA_GLYPHS y, detrás, REGLAS_MARCAS). Las claves genéricas requieren
+    límite de palabra al inicio, para no confundir "pipeline" con "pip" ni
+    "funciona" con "funcion". Las marcas exigen además límite al final.
     """
     t = " " + _normalizar(texto) + " "
+    genericas = _TEMA_RULES + TEMA_GLYPHS
+    corte = len(genericas)
     mejor = None  # (posicion, orden, glyph)
-    for orden, (claves, glyph) in enumerate(_TEMA_RULES + TEMA_GLYPHS):
+    for orden, (claves, glyph) in enumerate(genericas + REGLAS_MARCAS):
         if glyph in usados:
             continue
+        sufijo = r"(?![a-z0-9])" if orden >= corte else ""
         for c in claves:
             k = _normalizar(c)
             if not k:
                 continue
-            m = re.search(r"(?<![a-z0-9])" + re.escape(k), t)
+            m = re.search(r"(?<![a-z0-9])" + re.escape(k) + sufijo, t)
             if m:
                 cand = (m.start(), orden, glyph)
                 if mejor is None or cand[:2] < mejor[:2]:
