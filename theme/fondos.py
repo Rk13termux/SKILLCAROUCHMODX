@@ -254,6 +254,16 @@ def codigo_html(comandos=None, semilla: int = SEMILLA, lineas: int = 30,
 
 # ── composición ────────────────────────────────────────────────────
 
+def capas_before(rgb, rol: str = "cover") -> list:
+    """Capas de `.slide::before`: viñeta + estrellas + mesh + degradado base."""
+    return _stars.capas_estrellas() + _mesh(rgb, rol) + [_BASE]
+
+
+def fondo_simple(rgb=(250, 204, 21), rol: str = "cover") -> str:
+    """Fondo en una sola declaración (story): sin textura ni grano."""
+    return ", ".join(capas_before(rgb, rol))
+
+
 def fondo(rol: str = "contenido", vertical: str = "tech", rgb=(250, 204, 21),
           variante: str = "auto", comandos=None, semilla: int = SEMILLA,
           con_codigo: bool = True) -> dict:
@@ -281,7 +291,7 @@ def fondo(rol: str = "contenido", vertical: str = "tech", rgb=(250, 204, 21),
             " transparent 45%)",
         ] + _stars.capas_estrellas() + [f"linear-gradient(#0B0B0D, #0B0B0D)"]
     else:
-        capas = list(_stars.capas_estrellas())  # ya trae la viñeta primero
+        capas = _stars.capas_estrellas()  # ya trae la viñeta primero
         capas.extend(_mesh(rgb, rol, escala))
         capas.append(_BASE)
 

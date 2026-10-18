@@ -2014,7 +2014,10 @@ def generar_story(input_dir: Path, display, resalte_hex, isotipo,
         "__accent_rgba_b__": accent_vars["accent_rgba_b"],
         "__accent_rgba_30__": accent_vars["accent_rgba_30"],
         "__accent_rgba_40__": accent_vars["accent_rgba_40"],
-        "__estrellas__": _stars.css_estrellas(),
+        # El story usa las mismas capas que la portada (sin textura ni grano)
+        # para no quedar con el fondo viejo mientras los slides ya lo cambiaron.
+        "__estrellas__": _fondos.fondo_simple(
+            accent_vars.get("rgb", (250, 204, 21)), "cover"),
         "__resalte_rgba32__": f"rgba({rr},{rg},{rb},0.32)",
         "__resalte__": resalte_hex,
         "__resalte_brillo__": brillo,
