@@ -85,6 +85,8 @@ python3 ~/.config/opencode/skills/tech-carousel/tech_carousel.py \
 | `--vertical` | no | `auto` (default: se deduce del slug) o fijo `cybersec\|prog\|ai\|infra` |
 | `--iconos` | no | `auto` (default) o `--iconos <categoria>` |
 | `--sin-placa` | no | Iconos en modo clásico (sin la placa duotono) |
+| `--fondo` | no | `auto` (default: por rol + vertical) · `base` (look clásico de estrellas) · `mesh` · `grid` · `puntos` · `circuitos` · `nodos` · `topologia` · `beams` · `codigo` |
+| `--fondo-fijo` | no | Mismo fondo en todos los slides (desactiva la variación por rol) |
 | `--componentes` | no | `auto` (default) o lista fijada `terminal,card-compare` |
 | `--preset` | no | `repo` · `comandos` · `python` · `mixto` (default: receta tipo de post) |
 | `--marca` | no | Marca del pie (default `CHMODX`) |
@@ -305,6 +307,39 @@ El **agente `icon-smith`** (`.config/opencode/agents/icon-smith.md`) automatiza
 ese ciclo: analiza el tema, agrega los iconos que faltan y verifica con el
 self-test + la suite. Reglas duras: un solo `stroke-width` por elemento, sin
 filtros SVG, `fill="none"`, y el color siempre por `url(#c)`.
+
+### Fondo del slide (`--fondo` + `theme/fondos.py`)
+
+El fondo se compone en dos capas deterministas (misma semilla → mismo render
+en los 4 formatos, todo en % del lienzo):
+
+- `.slide::before` — viñeta + estrellas + **mesh** de radiales del acento + degradado base.
+- `.slide::after` — **textura** (enmascarada) + **grano** anti-banding (`feTurbulence` al ~5 %, mínimo pero rompe el banding en OLED).
+
+`--fondo auto` (default) elige por **rol** y por **vertical**:
+
+| Rol del slide | Mesh | Textura por vertical |
+|---|---|---|
+| Portada | 3 glows, fuerte | `cybersec` → circuitos · `prog` → grid · `ai` → nodos · `infra` → topología · resto → puntos |
+| Contenido | 2 glows suaves | (igual, según el vertical) |
+| Puente | foco central | |
+| Cierre | glow potente desde abajo | |
+
+Además, `auto` inyecta el **código fantasma**: los comandos reales del carrusel
+al 5 % de opacidad detrás del contenido (con números de línea en acento).
+
+Variantes manuales: `base` (look clásico), `mesh`, `grid`, `puntos`,
+`circuitos`, `nodos`, `topologia`, `beams` (haces conic), `codigo`.
+`--fondo-fijo` usa el perfil «contenido» en todos los slides.
+
+Para **elegir mirando**, el comparador arma un contact-sheet con cada variante en
+una fila y cada rol en una columna:
+
+```bash
+python3 comparar_fondos.py                    # variantes × roles → /sdcard/CTSLIDER/_comparador-fondos/comparador-fondos.png
+python3 comparar_fondos.py --verticales       # 1 fila por vertical (auto)
+python3 comparar_fondos.py --solo grid codigo --accent "#06B6D4"
+```
 
 ## Pipeline (6 pasos)
 

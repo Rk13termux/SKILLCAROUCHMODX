@@ -38,14 +38,15 @@ def test_capa_tiene_viñeta_mas_estrellas():
 
 
 def test_template_de_slide_usa_el_token():
-    assert "__estrellas__" in TEMPLATE
-    assert ".slide::before" in TEMPLATE
-    # la capa de estrellas va en el mismo pseudo-elemento que los acentos,
-    # por debajo de `.slide > *` (z-index 1) para no tapar el contenido
-    bloque = TEMPLATE.split(".slide::before")[1].split("}")[0]
-    assert "__estrellas__" in bloque
+    for tok in ("__fondo_img__", "__textura_img__", "__textura_size__",
+                "__textura_mask__", "__textura_op__", "__fondo_codigo__"):
+        assert tok in TEMPLATE, tok
+    assert ".slide::before" in TEMPLATE and ".slide::after" in TEMPLATE
+    # el fondo va por debajo de `.slide > *` (z-index 1) para no tapar el contenido
     assert TEMPLATE.index(".slide::before") < TEMPLATE.index(
         ".slide > * { position: relative; z-index: 1; }")
+    # el código fantasma queda detrás del contenido (z-index negativo)
+    assert "z-index: -1" in TEMPLATE
 
 
 def test_template_de_story_tambien_tiene_estrellas():
@@ -57,7 +58,9 @@ def test_template_de_story_tambien_tiene_estrellas():
 
 def test_slide_generado_no_deja_tokens_sin_reemplazar():
     html = _html_slide()
-    assert "__estrellas__" not in html
+    for tok in ("__fondo_img__", "__textura_img__", "__textura_size__",
+                "__textura_mask__", "__textura_op__", "__fondo_codigo__"):
+        assert tok not in html, tok
     assert "__resalte__" not in html
     assert "__accent__" not in html
     assert html.count("radial-gradient") >= 70

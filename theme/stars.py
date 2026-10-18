@@ -11,9 +11,9 @@ SEMILLA = 20261007
 FONDO = "0,0,0"   # negro puro
 
 
-def css_estrellas(n_tenues: int = 92, n_brillantes: int = 14,
-                  semilla: int = SEMILLA) -> str:
-    """Lista `background-image`: viñeta + estrellas.
+def capas_estrellas(n_tenues: int = 92, n_brillantes: int = 14,
+                    semilla: int = SEMILLA) -> list:
+    """Capas `background-image`: viñeta + estrellas.
 
     El orden es de arriba hacia abajo (primera capa = encima): la viñeta
     oscurece los bordes para que el contenido centre respalte y las estrellas
@@ -38,7 +38,13 @@ def css_estrellas(n_tenues: int = 92, n_brillantes: int = 14,
             f"radial-gradient(circle at {x:.2f}% {y:.2f}%, "
             f"rgba(255,255,255,0.92) 0 2.4px, rgba(255,255,255,0.34) 3.6px, "
             f"transparent 11px)")
-    return ", ".join(capas)
+    return capas
+
+
+def css_estrellas(n_tenues: int = 92, n_brillantes: int = 14,
+                  semilla: int = SEMILLA) -> str:
+    """Lista `background-image` (string): viñeta + estrellas."""
+    return ", ".join(capas_estrellas(n_tenues, n_brillantes, semilla))
 
 
 def posiciones_brillantes(semilla: int = SEMILLA,

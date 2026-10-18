@@ -53,6 +53,7 @@ except ImportError:
 from components import expandir
 from icons import detectar_categoria, elegir_icono, icono_slide
 from theme import colors as _colors
+from theme import fondos as _fondos
 from theme import fonts as _fonts
 from theme import stars as _stars
 from theme import tokens as _tokens
@@ -342,15 +343,46 @@ __links_fuentes__
     flex-direction: column;
     position: relative;
     overflow: hidden;
+    isolation: isolate;  /* el código fantasma usa z-index negativo */
   }
   .slide::before {
     content: "";
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at 85% 8%, __accent_rgba__, transparent 45%),
-                radial-gradient(circle at 8% 92%, var(--acento-rgba-b), transparent 45%),
-                __estrellas__;
+    background-image: __fondo_img__;
     pointer-events: none;
+  }
+  /* Textura del fondo (grid / circuitos / nodos / topología / puntos / beams):
+     va enmascarada para desvanecerse hacia los bordes y no competir con el texto. */
+  .slide::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: __textura_img__;
+    background-size: __textura_size__;
+    -webkit-mask-image: __textura_mask__;
+    mask-image: __textura_mask__;
+    opacity: __textura_op__;
+    pointer-events: none;
+  }
+  /* Código fantasma: los comandos reales del carrusel, casi imperceptibles. */
+  .slide > .fondo-codigo {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    padding: 120px 86px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 25px;
+    line-height: 2.05;
+    color: var(--blanco);
+    opacity: 0.05;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .slide > .fondo-codigo .ln {
+    color: var(--acento);
+    opacity: 0.75;
+    margin-right: 20px;
   }
   .slide > * { position: relative; z-index: 1; }
 
@@ -747,6 +779,7 @@ __componentes_css__
 </head>
 <body__body_class__>
   <div class="slide __slide_class__">
+    __fondo_codigo__
     <div class="encabezado">
       <div class="marca">
         <img class="isotipo" src="__isotipo__" alt="__marca__">
@@ -1299,7 +1332,7 @@ def generar_html(i, n, data, fmt_key, fmt, accent_vars, isotipo, marca,
                   guia=True, guia_tag=None, guia_titulo=None, guia_sub=None,
                   comandos_finales=None, cta_modo="seguir", recap_titulos=None,
                   landing=None, landing2=None, landing2_texto=None,
-                  plano=False):
+                  plano=False, categoria=None, fondo="auto", fondo_fijo=False):
     numero = data["number"] if data["number"] else f"{i}/{n}"
     cuerpo = _quitar_indicador(data["body"])
     cls = _clase_slide(i, n)
@@ -1457,6 +1490,16 @@ def generar_html(i, n, data, fmt_key, fmt, accent_vars, isotipo, marca,
     pie = data["footer"] or f"{marca}"
     pie = pie.replace("AudioBlaze", marca)
 
+    # Fondo: el rol del slide decide la intensidad del mesh; el vertical, la
+    # textura. --fondo-fijo fuerza el perfil "contenido" para todos.
+    rol_fondo = "contenido" if fondo_fijo else {
+        "cover": "cover", "puente": "puente",
+        "final-cta": "cierre"}.get(cls, "contenido")
+    capas_fondo = _fondos.fondo(
+        rol=rol_fondo, vertical=categoria or "tech",
+        rgb=accent_vars.get("rgb", (250, 204, 21)),
+        variante=fondo, comandos=comandos_finales)
+
     sc = _format_scaling(fmt_key)
     html = TEMPLATE
     for k, v in {
@@ -1469,7 +1512,12 @@ def generar_html(i, n, data, fmt_key, fmt, accent_vars, isotipo, marca,
         "__accent_rgba_30__": accent_vars["accent_rgba_30"],
         "__accent_rgba_40__": accent_vars["accent_rgba_40"],
         "__componentes_css__": _tokens.COMPONENTES_CSS,
-        "__estrellas__": _stars.css_estrellas(),
+        "__fondo_img__": capas_fondo["fondo"],
+        "__textura_img__": capas_fondo["textura"],
+        "__textura_size__": capas_fondo["textura_size"],
+        "__textura_mask__": capas_fondo["textura_mask"],
+        "__textura_op__": capas_fondo["textura_op"],
+        "__fondo_codigo__": capas_fondo["codigo"],
         "__links_fuentes__": _fonts.links(),
         "__font_display__": _fonts.DISPLAY,
         "__marca__": marca,
@@ -2087,6 +2135,10 @@ def main():
                     help="auto (default) o una categoría de icons/")
     ap.add_argument("--sin-placa", action="store_true",
                     help="iconos en modo clásico (sin placa duotono)")
+    ap.add_argument("--fondo", default="auto", choices=list(_fondos.VARIANTES),
+                    help="fondo del slide (auto = según rol y vertical)")
+    ap.add_argument("--fondo-fijo", action="store_true",
+                    help="mismo fondo en todos los slides (perfil contenido)")
     ap.add_argument("--componentes", default="auto",
                     help="auto o lista blanca separada por coma (QA)")
     ap.add_argument("--preset", default="mixto",
@@ -2359,7 +2411,10 @@ def main():
                             landing=args.landing,
                             landing2=args.landing2,
                             landing2_texto=args.landing2_texto,
-                            plano=args.sin_placa)
+                            plano=args.sin_placa,
+                            categoria=cat,
+                            fondo=args.fondo,
+                            fondo_fijo=args.fondo_fijo)
         if permitidos is not None:
             for w in slide_warnings:
                 if "componente" in w and not any(
