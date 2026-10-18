@@ -1609,14 +1609,18 @@ def generar_html(i, n, data, fmt_key, fmt, accent_vars, isotipo, marca,
                 f'<span class="landing-mini__sub">Curso de Python + '
                 f'canal de Telegram</span></div>')
         if recap:
-            props_chk = {"titulo": "Lo esencial en 3 ideas",
-                         "items": recap}
-            cuerpo_chk, _u = expandir(
-                '<div class="componente" data-component="checklist" '
-                f"data-props='{json.dumps(props_chk, ensure_ascii=False)}'>"
+            # Diagrama con las 3 ideas clave como flujo visual (más llamativo
+            # que el checklist de texto). El tipo de nodo varía por vertical
+            # para que cada tema tenga su propio lenguaje visual.
+            tipo_nodo = {"cybersec": "alerta", "ai": "info",
+                         "infra": "info", "dev": "ok"}.get(categoria, "info")
+            nodos = [{"v": idea, "tipo": tipo_nodo} for idea in recap]
+            props_diag = {"titulo": "Lo esencial en 3 ideas", "nodos": nodos}
+            cuerpo_diag, _ = expandir(
+                '<div class="componente" data-component="diagram" '
+                f"data-props='{json.dumps(props_diag, ensure_ascii=False)}'>"
                 "</div>", {"accent": accent_vars["accent"]}, warnings)
-            # Terminal con los comandos clave del carrusel: el puente deja
-            # de ser texto y pasa a mostrar la acción concreta.
+            # Terminal con los comandos clave del carrusel
             terminal_puente = ""
             if comandos_finales:
                 props_term = {"titulo": "comandos · para llevarte",
@@ -1629,7 +1633,7 @@ def generar_html(i, n, data, fmt_key, fmt, accent_vars, isotipo, marca,
             titulo_p = ("Ver no es hacer: empieza a programar hoy"
                         if landing else "Antes del final: el resumen")
             extra = (f'<div class="titulo">{titulo_p}</div>'
-                     f'{cuerpo_chk}{terminal_puente}{landing_mini}'
+                     f'{cuerpo_diag}{terminal_puente}{landing_mini}'
                      f'{_html_indicador(_micro_indicador(i, n, semilla, cta_modo))}')
         else:
             t, c = _elegir(PUENTES, semilla)
