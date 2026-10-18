@@ -41,7 +41,7 @@ def test_story_comparte_el_fondo_del_slide_sin_estrellas():
     fondo = STORY_TEMPLATE.split(".story {")[1].split("}")[0]
     assert "__fondo_story__" in fondo
     assert "__estrellas__" not in STORY_TEMPLATE
-    assert fondo.rstrip().endswith("#0B0B0D;")
+    assert fondo.rstrip().endswith("#000000;")
 
 
 def test_todos_los_tokens_del_story_estan_en_el_template():

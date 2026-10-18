@@ -483,14 +483,14 @@ python3 ~/.config/opencode/skills/tech-carousel/brief.py --dry-run  # sólo impr
 ## Reglas de diseño (las aplica el builder)
 
 - **Keywords por líneas:** 1 línea → EXACTAMENTE 1 `.clave`; 2-3 líneas → EXACTAMENTE 2. Medido en Chromium, nunca estimado. El matcher acepta `class='clave'` y `class="clave"` (`_RE_CLAVE`), no solo comillas dobles.
-- **Color de keyword:** `--resalte`, y si no se pasa **usa el mismo `--color`** (`_colors.resuelve_resalte()`), para que todo el carrusel viva de un solo color. Un `--resalte` explícito siempre gana. El builder avisa si el contraste contra `#0B0B0D` no llega a 4.5:1 (nunca cambia el color solo).
+- **Color de keyword:** `--resalte`, y si no se pasa **usa el mismo `--color`** (`_colors.resuelve_resalte()`), para que todo el carrusel viva de un solo color. Un `--resalte` explícito siempre gana. El builder avisa si el contraste contra `#000000` no llega a 4.5:1 (nunca cambia el color solo).
 - **Glow keyword:** `0 0 27px` con 32% de opacidad del `--resalte`.
 - **Tamaño mínimo de texto:** cuerpo del slide `__body_size__` (44px) y componentes `__comp_base__` × `__comp_zoom__` ≥ 32px de diseño. Nunca achicar texto para que quepa: aligerá el shell (`ajustes` en `_format_scaling()`) o acortá el copy.
 - **Píldora swipe:** padding 18px/32px, `min-height: __ind_h__px` (72 en 9:16, 56 en 4:5, 54 en 3:4, oculta en 1:1).
 - **Tipografía:** display **Inter** (títulos/cuerpo) + mono **Hasklig → JetBrains Mono** (código/terminal). El `font-family` del mono siempre termina en `SFMono-Regular, Menlo, Consolas, monospace` para que funcione offline.
-- **Fondo:** slides `#0B0B0D`, superficies `#141417`/`#1F2937`, bloques técnicos `#0F172A`, bordes `#26262B`/`#334155`.
+- **Fondo:** slides `#000000`, superficies `#141417`/`#1F2937`, bloques técnicos `#0F172A`, bordes `#26262B`/`#334155`.
 - **Fondo del slide:** viñeta + degradado base en `.slide::before` (el mesh de glows del acento solo aparece en `--fondo mesh`), y circuitos (**por defecto**) + grano en `.slide::after`, **por debajo** del contenido (`z-index: 1`) y con coordenadas en `%`, así el mismo CSS sirve para 9:16, 2:3, 3:4, 4:5, 1:1 y 16:9. Determinista (`theme/fondos.py`, semilla fija): mismo tema → mismo fondo en todos los renders. Sin estrellas ni glows.
-- **Accesibilidad:** contraste AA mínimo. Si `--resalte` contra `#0B0B0D` no llega a 4.5:1, el builder avisa.
+- **Accesibilidad:** contraste AA mínimo. Si `--resalte` contra `#000000` no llega a 4.5:1, el builder avisa.
 
 ## Errores comunes
 

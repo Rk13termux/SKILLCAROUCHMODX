@@ -53,7 +53,7 @@ _MESH = {
 # Multiplicador del variante "mesh" (glows más marcados).
 _MESH_ESCALA = {"cover": 1.35, "contenido": 1.7, "puente": 1.6, "cierre": 1.2}
 
-_BASE = "linear-gradient(180deg, #111116 0%, #09090C 52%, #0B0B0D 100%)"
+_BASE = "linear-gradient(180deg, #000000 0%, #000000 100%)"
 
 
 # ── capas de ::before ──────────────────────────────────────────────
@@ -283,7 +283,7 @@ def fondo(rol: str = "contenido", vertical: str = "tech", rgb=(250, 204, 21),
     if solo_base:
         # Ojo: background-image sólo acepta imágenes, no colores sueltos; el
         # negro final va como gradiente plano o Chromium descarta la regla.
-        capas = [_vineta()] + [f"linear-gradient(#0B0B0D, #0B0B0D)"]
+        capas = [_vineta()] + [f"linear-gradient(#000000, #000000)"]
     else:
         capas = [_vineta()]
         if variante == "mesh":

@@ -2057,7 +2057,7 @@ def exportar_reel(input_dir, nombres, fmt, fps=1.6):
     dest = input_dir / f"{input_dir.name}.mp4"
     cmd = [ffmpeg, "-y", "-f", "concat", "-safe", "0", "-i", str(lista),
            "-vf", f"scale={fmt['w']}:{fmt['h']}:force_original_aspect_ratio=decrease,"
-                  f"pad={fmt['w']}:{fmt['h']}:(ow-iw)/2:(oh-ih)/2:color=0x0B0B0D,"
+                  f"pad={fmt['w']}:{fmt['h']}:(ow-iw)/2:(oh-ih)/2:color=0x000000,"
                   f"format=yuv420p", "-r", "30", "-c:v", "libx264", "-preset",
            "medium", str(dest)]
     try:
@@ -2101,7 +2101,7 @@ __links_fuentes__
   }
   body {
     font-family: __font_display__;
-    background: #0B0B0D;
+    background: #000000;
     color: #FFFFFF;
     -webkit-font-smoothing: antialiased;
   }
@@ -2116,7 +2116,7 @@ __links_fuentes__
       radial-gradient(circle at 85% 8%, __accent_rgba__, transparent 45%),
       radial-gradient(circle at 8% 92%, var(--acento-rgba-b), transparent 45%),
       __fondo_story__,
-      #0B0B0D;
+      #000000;
   }
   .isotipo { width: 130px; margin-bottom: 70px;
     filter: drop-shadow(0 0 26px var(--acento-rgba-30)); }

@@ -5,7 +5,7 @@ CSS vars por slide. Aquí sólo están los colores fijos y las utilidades de
 contraste.
 """
 
-FONDO = "#0B0B0D"
+FONDO = "#000000"
 FONDO_SUAVE = "#141417"
 FONDO_CODIGO = "#0F172A"
 SUPERFICIE = "#1F2937"
