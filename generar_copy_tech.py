@@ -211,10 +211,26 @@ def generar_slides(tema_slug, n, vertical, display, short, marca,
             key=lambda b: 0 if (b.get("componente") and _norm_comp(
                 b["componente"].get("tipo")) in permitidos) else 1))
     ultimo_componente = None
+    # Conteo de uso: sirve para no sobrecargar un mismo componente (sobre
+    # todo el terminal) y dar variedad visual al carrusel.
+    uso_componentes = {}
     for i in range(2, n - 1):  # slides 2 .. N-2 (contenido)
         bloque = cobertura[(i - 2) % len(cobertura)]
         # No repetir componente consecutivo al ciclar el banco
         comp = bloque["componente"]
+        # Si el bloque es terminal y ya usamos terminal recientemente, buscar
+        # un bloque cercano con componente distinto (más llamativo).
+        if comp and comp.get("tipo") == "terminal" and \
+                uso_componentes.get("terminal", 0) >= 2:
+            for k in range(1, 4):
+                alt = cobertura[(i - 2 + k) % len(cobertura)]
+                if (alt.get("componente") and
+                        alt["componente"].get("tipo") != "terminal" and
+                        (permitidos is None or
+                         _norm_comp(alt["componente"].get("tipo")) in permitidos)):
+                    bloque = alt
+                    comp = bloque["componente"]
+                    break
         if comp and comp["tipo"] == ultimo_componente:
             comp = None
         if comp and permitidos is not None:
@@ -236,6 +252,7 @@ def generar_slides(tema_slug, n, vertical, display, short, marca,
                 f"data-props='{json.dumps(props, ensure_ascii=False)}'></div>"
             )
             ultimo_componente = comp["tipo"]
+            uso_componentes[comp["tipo"]] = uso_componentes.get(comp["tipo"], 0) + 1
         slides_html.append((i, "\n".join(partes)))
         textos.append(f"{titulo} {cuerpo_corregido}")
 

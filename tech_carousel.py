@@ -1615,10 +1615,21 @@ def generar_html(i, n, data, fmt_key, fmt, accent_vars, isotipo, marca,
                 '<div class="componente" data-component="checklist" '
                 f"data-props='{json.dumps(props_chk, ensure_ascii=False)}'>"
                 "</div>", {"accent": accent_vars["accent"]}, warnings)
+            # Terminal con los comandos clave del carrusel: el puente deja
+            # de ser texto y pasa a mostrar la acción concreta.
+            terminal_puente = ""
+            if comandos_finales:
+                props_term = {"titulo": "comandos · para llevarte",
+                              "lines": [{"t": "cmd", "v": c}
+                                        for c in comandos_finales[:4]]}
+                terminal_puente, _ = expandir(
+                    '<div class="componente" data-component="terminal" '
+                    f"data-props='{json.dumps(props_term, ensure_ascii=False)}'>"
+                    "</div>", {"accent": accent_vars["accent"]}, warnings)
             titulo_p = ("Ver no es hacer: empieza a programar hoy"
                         if landing else "Antes del final: el resumen")
             extra = (f'<div class="titulo">{titulo_p}</div>'
-                     f'{cuerpo_chk}{landing_mini}'
+                     f'{cuerpo_chk}{terminal_puente}{landing_mini}'
                      f'{_html_indicador(_micro_indicador(i, n, semilla, cta_modo))}')
         else:
             t, c = _elegir(PUENTES, semilla)
