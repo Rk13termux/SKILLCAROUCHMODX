@@ -51,7 +51,7 @@ except ImportError:
     Image = None
 
 from components import expandir
-from icons import detectar_categoria, icono_slide
+from icons import detectar_categoria, elegir_icono, icono_slide
 from theme import colors as _colors
 from theme import fonts as _fonts
 from theme import stars as _stars
@@ -404,11 +404,36 @@ __links_fuentes__
      los hijos con align-self:center (.badge, .cta, .ind-swipe, .secundario)
      quedan pegados a la izquierda. */
   .ajuste { width: 100%; display: flex; flex-direction: column; zoom: __contenido_zoom__; /* AJUSTE_ZOOM */ }
+  /* Placa duotono: el glyph vive dentro de una placa con acento y glow.
+     Ocupa el mismo __icon_size__, así que no altera el layout ni el auto-fit. */
   .icono-box { display: flex; justify-content: center; margin-bottom: __icon_margin__px; }
   .icono-box .icono-svg {
     width: __icon_size__px;
     height: __icon_size__px;
-    filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.45)) drop-shadow(0 0 26px var(--acento-rgba-40));
+    padding: calc(__icon_size__px * 0.18);
+    border-radius: 28%;
+    background:
+      radial-gradient(circle at 50% 32%, var(--acento-rgba-40), transparent 62%),
+      linear-gradient(150deg, rgba(255, 255, 255, 0.09), rgba(0, 0, 0, 0.32));
+    border: 2px solid var(--acento-rgba-40);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.10),
+      inset 0 -14px 28px rgba(0, 0, 0, 0.30),
+      0 20px 50px rgba(0, 0, 0, 0.55),
+      0 0 70px var(--acento-rgba-30);
+    filter:
+      drop-shadow(0 0 10px var(--acento-rgba-40))
+      drop-shadow(0 0 30px var(--acento-rgba-30));
+  }
+  /* Modo clásico (sin placa): --sin-placa agrega .plano al <body>. */
+  body.plano .icono-box .icono-svg {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.45))
+            drop-shadow(0 0 26px var(--acento-rgba-40));
   }
   .titulo {
     font-weight: 800;
@@ -720,7 +745,7 @@ __links_fuentes__
 __componentes_css__
 </style>
 </head>
-<body>
+<body__body_class__>
   <div class="slide __slide_class__">
     <div class="encabezado">
       <div class="marca">
@@ -1273,7 +1298,8 @@ def generar_html(i, n, data, fmt_key, fmt, accent_vars, isotipo, marca,
                   resalte_vars=None, semilla="", warnings=None,
                   guia=True, guia_tag=None, guia_titulo=None, guia_sub=None,
                   comandos_finales=None, cta_modo="seguir", recap_titulos=None,
-                  landing=None, landing2=None, landing2_texto=None):
+                  landing=None, landing2=None, landing2_texto=None,
+                  plano=False):
     numero = data["number"] if data["number"] else f"{i}/{n}"
     cuerpo = _quitar_indicador(data["body"])
     cls = _clase_slide(i, n)
@@ -1435,6 +1461,7 @@ def generar_html(i, n, data, fmt_key, fmt, accent_vars, isotipo, marca,
     html = TEMPLATE
     for k, v in {
         "__slide_class__": cls,
+        "__body_class__": ' class="plano"' if plano else "",
         "__accent__": accent_vars["accent"],
         "__accent_bright__": accent_vars["accent_bright"],
         "__accent_rgba__": accent_vars["accent_rgba"],
@@ -2058,6 +2085,8 @@ def main():
                          "(default: auto, por slug)")
     ap.add_argument("--iconos", default="auto",
                     help="auto (default) o una categoría de icons/")
+    ap.add_argument("--sin-placa", action="store_true",
+                    help="iconos en modo clásico (sin placa duotono)")
     ap.add_argument("--componentes", default="auto",
                     help="auto o lista blanca separada por coma (QA)")
     ap.add_argument("--preset", default="mixto",
@@ -2303,10 +2332,19 @@ def main():
                 _texto_titulo(parse_slide(src).get("body", "")))
     except Exception:
         recap_titulos = []
+    usados_iconos = set()
     for i, src in enumerate(slides, 1):
         data = parse_slide(src)
         slide_warnings = []
-        icono = icono_slide(i, n, accent_vars, tema=cat)
+        # Icono semántico: el texto del slide (título, cuerpo y props de los
+        # componentes) decide el glyph; si no matchea, cae al rol.
+        texto_ico = re.sub(r'data-component="[^"]*"', " ",
+                           data.get("body", ""))
+        nombre_ico, icono = elegir_icono(
+            i, n, accent_vars, tema=cat, texto=texto_ico,
+            usados=usados_iconos)
+        if nombre_ico:
+            usados_iconos.add(nombre_ico)
         html = generar_html(i, n, data, args.formato, fmt, accent_vars,
                             isotipo, marca,
                             icono=icono, badge=badge, cta_palabra=cta,
@@ -2320,7 +2358,8 @@ def main():
                             recap_titulos=recap_titulos,
                             landing=args.landing,
                             landing2=args.landing2,
-                            landing2_texto=args.landing2_texto)
+                            landing2_texto=args.landing2_texto,
+                            plano=args.sin_placa)
         if permitidos is not None:
             for w in slide_warnings:
                 if "componente" in w and not any(

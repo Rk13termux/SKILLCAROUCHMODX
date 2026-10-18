@@ -1,6 +1,6 @@
 ---
 name: tech-carousel
-description: Use when the user asks to create professional Instagram carousel slides for tech education (cybersecurity, programming, AI, infra) with tech_carousel.py in this skill folder — requires HEX accent color and slide count. Writes copy + HTML + PNG into the CTSLIDER work folder (/sdcard/CTSLIDER, override with CTSLIDER_DIR). 23 components: terminal, cards, compare, repo, diagrams, code, editor, tree, http, diff, stats, layers, pipeline, tabla, faq, quote, quiz and more. Icon library auto-selected by vertical.
+description: Use when the user asks to create professional Instagram carousel slides for tech education (cybersecurity, programming, AI, infra) with tech_carousel.py in this skill folder — requires HEX accent color and slide count. Writes copy + HTML + PNG into the CTSLIDER work folder (/sdcard/CTSLIDER, override with CTSLIDER_DIR). 23 components: terminal, cards, compare, repo, diagrams, code, editor, tree, http, diff, stats, layers, pipeline, tabla, faq, quote, quiz and more. 235 professional icons (Lucide + hand-drawn) picked semantically from the slide text; icon_smith.py and the icon-smith agent add icons per topic.
 ---
 
 # Crear Carousel Tech (Ciberseguridad · Programación · IA)
@@ -84,6 +84,7 @@ python3 ~/.config/opencode/skills/tech-carousel/tech_carousel.py \
 | `--formato` | no | `9:16` (default) · `3:4` · `4:5` · `1:1` |
 | `--vertical` | no | `auto` (default: se deduce del slug) o fijo `cybersec\|prog\|ai\|infra` |
 | `--iconos` | no | `auto` (default) o `--iconos <categoria>` |
+| `--sin-placa` | no | Iconos en modo clásico (sin la placa duotono) |
 | `--componentes` | no | `auto` (default) o lista fijada `terminal,card-compare` |
 | `--preset` | no | `repo` · `comandos` · `python` · `mixto` (default: receta tipo de post) |
 | `--marca` | no | Marca del pie (default `CHMODX`) |
@@ -236,9 +237,13 @@ hook + subtítulo + componente gancho automático):
 Forzar: --componentes [set de la matriz] (opcional).
 ```
 
-## Sets de íconos (auto-detección)
+## Sets de íconos (por tema + rol)
 
-8 categorías en `icons/`. Precedencia de `detectar_categoria()` (primer match gana, orden crítico anti-colisión):
+**235 glyphs** en 8 categorías. La librería combina **Lucide** (line-art 24×24, ISC,
+normalizado al estilo de la casa) con el **trazo a mano** original, que gana si
+comparten nombre. El color sale del acento del carrusel (gradiente `url(#c)`).
+
+Precedencia de `detectar_categoria()` (primer match gana, orden crítico anti-colisión):
 
 | Categoría | Keywords del slug/tema |
 |---|---|
@@ -252,6 +257,54 @@ Forzar: --componentes [set de la matriz] (opcional).
 | `tech` | default universal (si no matchea ninguno) |
 
 Verificá la categoría detectada (la imprime el builder) o forzá con `--iconos <categoria>`.
+
+### Icono semántico (el texto del slide decide)
+
+Ya no es solo "vertical → set": cada slide busca en **su propio texto** (título,
+cuerpo y props de los componentes) una **palabra clave** y usa el glyph que
+corresponde — `docker`→contenedor, `phishing`→anzuelo, `fuga`→correo en riesgo,
+`roadmap`→ruta, `ransomware`→candado, etc. Gana la clave que aparece **más
+temprano** en el texto y se exige **límite de palabra** (así `pipeline` no cae en
+`pip` ni `funciona` en `funciones`). Si no hay match, cae al **rol**:
+
+| Rol | Glyph |
+|---|---|
+| Portada (1) | primer glyph del set |
+| Contenido | rota por índice, sin repetir los ya usados |
+| Puente (N-1) | `list-checks` / `target` / `flag` / `check` |
+| Cierre (N) | `rocket` / `arrow-right` / `check` / `target` |
+
+### Estilo: placa duotono + glow
+
+Los iconos se pintan dentro de una **placa** (esquina redondeada, relleno de
+acento, borde y halo) que ocupa el mismo `__icon_size__`, así que no altera el
+layout ni el auto-fit. Modo clásico sin placa: `--sin-placa`.
+
+### Crear iconos para un tema (`icon_smith.py` + agente `icon-smith`)
+
+```bash
+cd ~/.config/opencode/skills/tech-carousel
+python3 icon_smith.py sugerir "Fugas de correo con Python" --slides 7
+python3 icon_smith.py sugerir --tema <slug> --dir "$CTSLIDER_DIR"   # slides reales
+python3 icon_smith.py buscar "kubernetes"        # qué matchea y qué falta
+python3 icon_smith.py catalogo --grep shield     # 2159 iconos de Lucide
+python3 icon_smith.py agregar cybersec shield-half --kw "media luna"
+python3 icon_smith.py listar cybersec
+```
+
+`agregar` baja el SVG de Lucide, lo normaliza y lo escribe en el **overlay**
+`icons/lucide_extra.py` (+ reglas en `icons/tema_extra.py`), que **no se pierde**
+al regenerar la librería. Para re-sincronizar los sets curados de Lucide:
+
+```bash
+python3 -m icons.sync_lucide            # regenera icons/lucide_sets.py
+python3 -m icons.registry --test        # valida TODOS los glyphs
+```
+
+El **agente `icon-smith`** (`.config/opencode/agents/icon-smith.md`) automatiza
+ese ciclo: analiza el tema, agrega los iconos que faltan y verifica con el
+self-test + la suite. Reglas duras: un solo `stroke-width` por elemento, sin
+filtros SVG, `fill="none"`, y el color siempre por `url(#c)`.
 
 ## Pipeline (6 pasos)
 
