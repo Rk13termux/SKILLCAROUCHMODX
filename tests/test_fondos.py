@@ -96,8 +96,8 @@ def test_determinista():
 
 
 def test_el_rol_cambia_el_mesh():
-    cub = fondos.fondo(rol="cover", rgb=(250, 204, 21))
-    con = fondos.fondo(rol="contenido", rgb=(250, 204, 21))
+    cub = fondos.fondo(rol="cover", variante="mesh", rgb=(250, 204, 21))
+    con = fondos.fondo(rol="contenido", variante="mesh", rgb=(250, 204, 21))
     assert _capas(cub["fondo"]) > _capas(con["fondo"])
 
 
@@ -159,13 +159,13 @@ def test_slide_generado_con_cada_variante_no_deja_tokens():
 
 
 def test_roles_por_clase_de_slide():
-    # portada → mesh fuerte; cierre → glow desde abajo; contenido → suave
-    cover = _html(1, 4)
-    contenido = _html(2, 4)
-    cierre = _html(4, 4)
+    # En la variante `mesh` el rol cambia el numero de glows.
+    cover = _html(1, 4, fondo="mesh")
+    contenido = _html(2, 4, fondo="mesh")
+    cierre = _html(4, 4, fondo="mesh")
     assert "radial-gradient" in cover and "radial-gradient" in cierre
     assert cover.count("radial-gradient") != contenido.count("radial-gradient") \
-        or cover != contenido
+        or contenido.count("radial-gradient") != cierre.count("radial-gradient")
 
 
 def test_fondo_fijo_iguala_todos_los_slides():

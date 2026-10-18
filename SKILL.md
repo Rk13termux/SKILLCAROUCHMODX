@@ -333,14 +333,15 @@ filtros SVG, `fill="none"`, y el color siempre por `url(#c)`.
 El fondo se compone en dos capas deterministas (misma semilla → mismo render
 en los 6 formatos, todo en % del lienzo):
 
-- `.slide::before` — viñeta + **mesh** de radiales del acento + degradado base.
+- `.slide::before` — viñeta + degradado base (el **mesh** de glows del acento solo aparece con `--fondo mesh`).
 - `.slide::after` — **textura** (enmascarada) + **grano** anti-banding (`feTurbulence` al ~5 %, mínimo pero rompe el banding en OLED).
 
 **El fondo de la casa son los circuitos** (`VARIANTE_DEFECTO`): `auto` —y por lo
-tanto el default de `--fondo`— los usa en **todos los verticales y roles**, y solo
-cambia la intensidad del mesh según el rol:
+tanto el default de `--fondo`— los usa en **todos los verticales y roles**. El
+`mesh` (radiales del acento) **ya no va en el default**: queda solo en la variante
+manual `mesh`, donde sí cambia de intensidad según el rol:
 
-| Rol del slide | Mesh |
+| Rol del slide | Mesh (solo en `--fondo mesh`) |
 |---|---|
 | Portada | 3 glows, fuerte |
 | Contenido | 2 glows suaves |
@@ -352,11 +353,13 @@ del carrusel al 5 % de opacidad detrás del contenido (con números de línea en
 
 Variantes manuales: `circuitos` (idéntico al default) · `mesh` · `grid` · `puntos` ·
 `nodos` · `topologia` · `beams` (haces conic) · `codigo` · `base` (liso: solo viñeta
-+ dos radiales suaves + degradado plano, sin textura ni grano).
++ degradado plano, sin textura ni grano).
 `--fondo-fijo` usa el perfil «contenido» en todos los slides.
 
-**Sin estrellas:** el campo estrellado se eliminó por completo (ya no existe
-`theme/stars.py`); la profundidad la aporta la viñeta.
+**Sin estrellas ni glows en el default:** el campo estrellado se eliminó por
+completo (ya no existe `theme/stars.py`) y los glows radiales del acento salieron
+del fondo de la casa; la profundidad la aporta solo la viñeta. Si querés los glows,
+usá `--fondo mesh`.
 
 Para **elegir mirando**, el comparador arma un contact-sheet con cada variante en
 una fila y cada rol en una columna:
@@ -486,7 +489,7 @@ python3 ~/.config/opencode/skills/tech-carousel/brief.py --dry-run  # sólo impr
 - **Píldora swipe:** padding 18px/32px, `min-height: __ind_h__px` (72 en 9:16, 56 en 4:5, 54 en 3:4, oculta en 1:1).
 - **Tipografía:** display **Inter** (títulos/cuerpo) + mono **Hasklig → JetBrains Mono** (código/terminal). El `font-family` del mono siempre termina en `SFMono-Regular, Menlo, Consolas, monospace` para que funcione offline.
 - **Fondo:** slides `#0B0B0D`, superficies `#141417`/`#1F2937`, bloques técnicos `#0F172A`, bordes `#26262B`/`#334155`.
-- **Fondo del slide:** viñeta + mesh del acento + degradado base en `.slide::before`, y circuitos (**por defecto**) + grano en `.slide::after`, **por debajo** del contenido (`z-index: 1`) y con coordenadas en `%`, así el mismo CSS sirve para 9:16, 2:3, 3:4, 4:5, 1:1 y 16:9. Determinista (`theme/fondos.py`, semilla fija): mismo tema → mismo fondo en todos los renders. Sin estrellas.
+- **Fondo del slide:** viñeta + degradado base en `.slide::before` (el mesh de glows del acento solo aparece en `--fondo mesh`), y circuitos (**por defecto**) + grano en `.slide::after`, **por debajo** del contenido (`z-index: 1`) y con coordenadas en `%`, así el mismo CSS sirve para 9:16, 2:3, 3:4, 4:5, 1:1 y 16:9. Determinista (`theme/fondos.py`, semilla fija): mismo tema → mismo fondo en todos los renders. Sin estrellas ni glows.
 - **Accesibilidad:** contraste AA mínimo. Si `--resalte` contra `#0B0B0D` no llega a 4.5:1, el builder avisa.
 
 ## Errores comunes

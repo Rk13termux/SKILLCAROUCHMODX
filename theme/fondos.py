@@ -8,7 +8,7 @@ Composición
 -----------
 `.slide::before` (todas las capas cubren el área completa, sin background-size):
     1. viñeta     — apaga los bordes y centra la atención
-    2. mesh       — radiales del color de acento (intensidad por rol)
+    2. mesh       — radiales del acento (solo en la variante `mesh`)
     3. base       — degradado vertical del negro
 
 `.slide::after` (texturas, con `background-size` y máscara propias):
@@ -283,15 +283,11 @@ def fondo(rol: str = "contenido", vertical: str = "tech", rgb=(250, 204, 21),
     if solo_base:
         # Ojo: background-image sólo acepta imágenes, no colores sueltos; el
         # negro final va como gradiente plano o Chromium descarta la regla.
-        capas = [
-            f"radial-gradient(circle at 85% 8%, rgba({r},{g},{b},0.14),"
-            " transparent 45%)",
-            f"radial-gradient(circle at 8% 92%, rgba({r},{g},{b},0.10),"
-            " transparent 45%)",
-        ] + [_vineta()] + [f"linear-gradient(#0B0B0D, #0B0B0D)"]
+        capas = [_vineta()] + [f"linear-gradient(#0B0B0D, #0B0B0D)"]
     else:
         capas = [_vineta()]
-        capas.extend(_mesh(rgb, rol, escala))
+        if variante == "mesh":
+            capas.extend(_mesh(rgb, rol, escala))
         capas.append(_BASE)
 
     # ::after ─ textura (el fondo de la casa o la pedida) + grano anti-banding
