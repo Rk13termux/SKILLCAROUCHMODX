@@ -502,9 +502,9 @@ def generar_copy_redes(carpeta: Path, display, short, marca=None, funnel=False,
     # ── Títulos SEO + retención ─────────────────────────────────────
     # Incluyen la keyword principal + término buscable (guía, tutorial,
     # paso a paso) para que aparezcan en los buscadores de cada red.
-    ig_titulo = f"{emo_ig} {kw1}: guía completa paso a paso"
-    tt_titulo = f"{emo_tt} {kw1} en 30 segundos"
-    fb_titulo = f"{emo_fb} Guía de {kw1}: {kw2} y {kw3}"
+    ig_titulo = f"{kw1}: guía completa paso a paso"
+    tt_titulo = f"{kw1}: guía completa en 30 segundos"
+    fb_titulo = f"Guía de {kw1}: {kw2} y {kw3}"
 
     # ── Descripciones optimizadas para SEO y promoción de la web ────
     if dom:
