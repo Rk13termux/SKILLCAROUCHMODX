@@ -52,6 +52,7 @@ except ImportError:
 
 from components import ALIAS as COMP_ALIAS, expandir
 from icons import detectar_categoria, elegir_icono, get_icon, icono_slide
+import redes as _redes
 from theme import colors as _colors
 from theme import fondos as _fondos
 from theme import fonts as _fonts
@@ -2565,6 +2566,7 @@ _CLAVES_LOTE = {
     "hashtags": "--hashtags",
     "resalte": "--resalte", "workers": "--workers", "repo": "--repo",
     "guia_titulo": "--guia-titulo", "guia_sub": "--guia-sub",
+    "redes": "--redes",
 }
 _BOOL_LOTE = {
     "sin_placa": "--sin-placa", "fondo_fijo": "--fondo-fijo",
@@ -2731,6 +2733,14 @@ def main(argv=None):
     ap.add_argument("--check", action="store_true",
                     help="Solo valida (props, copy, keywords y componentes) "
                          "sin renderizar: segundos, ideal para iterar el copy")
+    ap.add_argument("--redes", default=None, metavar="REDES",
+                    help="Genera una versión por red en <tema>/<red>/: "
+                         "'todas' o lista (tiktok,instagram,facebook). "
+                         "Sin este flag la salida es la de siempre.")
+    for _red in _redes.ORDEN:
+        ap.add_argument(f"--slides-{_red}", type=int, default=None,
+                        help=f"Cantidad de slides para {_red} "
+                             f"(default: el perfil recorta y avisa)")
     ap.add_argument("--lote", default=None, metavar="MANIFEST.json",
                     help="Renderiza varios posts desde un manifest JSON "
                          "(clave 'posts': lista de objetos con las mismas "
@@ -2760,6 +2770,25 @@ def main(argv=None):
     if args.slides < 3:
         sys.exit("--slides mínimo: 3 (1 portada + 1 contenido + 1 CTA). "
                  "Recomendado 7-10.")
+
+    # ── Perfiles de red (opcional). En F1 solo se valida y se imprime el
+    #    plan: la salida legacy sigue siendo la única que se escribe.
+    redes_sel = []
+    plan_redes = []
+    if args.redes:
+        try:
+            redes_sel = _redes.resolver_redes(args.redes)
+        except ValueError as e:
+            sys.exit(f"--redes: {e}")
+        forzados = {r: getattr(args, f"slides_{r}", None) for r in redes_sel}
+        forzados = {k: v for k, v in forzados.items() if v}
+        plan_redes = _redes.planear(args.slides, redes_sel, forzados)
+        print("  Perfiles de red:")
+        for item in plan_redes:
+            print(f"    · {item['red']}: {item['n']} slides en "
+                  f"{item['formato']}  (fuente: {args.slides})")
+            for aviso in item["avisos"]:
+                print(f"      ! {aviso}")
 
     fmt = FORMATOS[args.formato]
     # Forzar input_dir a cwd si existen slides ya escritos

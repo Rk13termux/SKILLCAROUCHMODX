@@ -210,3 +210,33 @@ Estimación: F1 1 h · F2 2 h · F3 1 h · F4 1 h · F5 2 h.
 4. `--slides-tiktok 6` genera 6 PNG y no toca las otras redes.
 5. Los presupuestos de caption se respetan por red.
 6. `--check --redes todas` no falla con un tema válido.
+
+---
+
+## 10. Estado
+
+### F1 · Perfiles — hecho (rama `feat/redes-perfiles`)
+
+| Entrega | Estado |
+|---|---|
+| `redes.py` con `PERFILES`, `resolver_redes()`, `seleccion()`, `planear()` | ✅ |
+| CLI `--redes` + `--slides-tiktok/instagram/facebook` | ✅ |
+| Validación temprana con error claro (`--redes myspace`) | ✅ |
+| `--check --redes todas` imprime el plan sin renderizar | ✅ |
+| `redes` aceptado en `--lote` | ✅ |
+| `tests/test_redes.py` (13 casos) | ✅ 182 passed en total |
+
+**Regresión verificada:** con el mismo comando y la misma fuente, el HTML generado
+en esta rama es **idéntico byte a byte** al del commit anterior
+(`diff -r` sobre los 10 `renders/*.html` → 0 líneas). Sin `--redes` no se escribe
+ninguna carpeta nueva.
+
+**Lo que F1 todavía NO hace (a propósito):** no escribe en `<tema>/<red>/`. El flag
+valida el perfil y muestra el plan; la salida real es la de siempre.
+
+### F2 · Carpetas — pendiente
+
+Siguiente paso: derivar `base = input_dir / red` en los 5 puntos de escritura
+(`renders`, `preview`, `stories`, `caption.txt`, `copy-redes.md`), guardar
+`perfil.json` y aplicar el recorte con los índices que ya devuelve `seleccion()`.
+
