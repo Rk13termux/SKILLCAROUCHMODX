@@ -16,6 +16,8 @@ _ESTADO_STAGE = {"ok": "stage--ok", "warn": "stage--warn", "warning": "stage--wa
                  "idle": "stage--idle", "wait": "stage--idle", "run": "stage--warn"}
 _TIPO_LAYER = {"front": "layer--front", "back": "layer--back", "db": "layer--db",
                "api": "layer--api"}
+# Dirección de la flecha entre capas. Default: hacia arriba (pirámide/stack).
+_FLECHA_LAYER = {"abajo": "▼", "down": "▼", "arriba": "▲", "up": "▲"}
 
 
 def render_stats(props, ctx, warnings=None):
@@ -62,6 +64,8 @@ def render_tabla(props, ctx, warnings=None):
 def render_layers(props, ctx, warnings=None):
     capas = props.get("capas") or props.get("layers") or []
     titulo = props.get("titulo") or props.get("title") or ""
+    flecha = _FLECHA_LAYER.get(
+        str(props.get("flecha") or props.get("arrow") or "").lower(), "▲")
     if len(capas) > MAX_CAPAS:
         if warnings is not None:
             warnings.append(f"layers: {len(capas)} > {MAX_CAPAS}, se recortan")
@@ -76,7 +80,7 @@ def render_layers(props, ctx, warnings=None):
         sub = f'<div class="layer__s">{s}</div>' if s else ""
         bloques.append(f'<div class="layer {tipo}"><div class="layer__n">{v}</div>{sub}</div>')
         if i < len(capas) - 1:
-            bloques.append('<div class="layers__arr">▲</div>')
+            bloques.append(f'<div class="layers__arr">{flecha}</div>')
     t = (f'<div class="layers__titulo">{_html.escape(str(titulo))}</div>' if titulo else "")
     return f'<div class="layers">{t}{"".join(bloques)}</div>'
 

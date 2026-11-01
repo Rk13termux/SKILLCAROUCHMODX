@@ -1,29 +1,40 @@
-# Componentes - Sliders renderizados
+# Componentes — catálogo
 
-- sample-01-alert.png
-- sample-02-alert.png
-- sample-03-alert.png
-- sample-04-alert.png
-- sample-05-timeline.png
-- sample-06-network-diagram.png
-- sample-07-tree-dir.png
-- sample-08-api-block.png
-- sample-09-api-block.png
-- sample-10-browser.png
-- sample-11-layers.png
-- sample-12-ci-pipeline.png
-- sample-13-stats.png
-- sample-14-flow.png
-- sample-15-quote.png
-- sample-16-comparison-table.png
-- sample-17-faq.png
-- sample-18-pasos.png
-- sample-19-checklist.png
-- sample-20-mitos.png
-- sample-21-terminal.png
-- sample-22-card-info.png
-- sample-23-card-compare.png
-- sample-24-repo-card.png
-- sample-25-diagram.png
-- sample-26-code.png
-- sample-27-social.png
+**32 componentes** renderizados en `componentes.png` (grilla 8×4).
+
+| # | Componente |
+|---|---|
+| 1 | `terminal` |
+| 2 | `code` |
+| 3 | `editor` |
+| 4 | `card-info` |
+| 5 | `card-compare` |
+| 6 | `stats` |
+| 7 | `dato-hero` |
+| 8 | `split` |
+| 9 | `progreso` |
+| 10 | `fix` |
+| 11 | `diff` |
+| 12 | `http` |
+| 13 | `browser` |
+| 14 | `diagram` |
+| 15 | `layers` |
+| 16 | `pipeline` |
+| 17 | `timeline-fases` |
+| 18 | `pasos` |
+| 19 | `checklist` |
+| 20 | `tabla` |
+| 21 | `tree` |
+| 22 | `indice` |
+| 23 | `faq` |
+| 24 | `mitos` |
+| 25 | `quote` |
+| 26 | `quiz` |
+| 27 | `social` |
+| 28 | `card-repo` |
+| 29 | `gh-stats` |
+| 30 | `stack-tec` |
+| 31 | `error` |
+| 32 | `qr` |
+
+Regenerar: `python3 componentes-test/regenerar.py`

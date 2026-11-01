@@ -1,0 +1,91 @@
+{
+  "_nota": "Props de muestra por componente para regenerar componentes-test/componentes.png. Cada entrada: [componente, props].",
+  "muestras": [
+    ["terminal", {"titulo": "termux · setup", "lines": [
+      {"t": "cmd", "v": "pkg install python -y"},
+      {"t": "out", "v": "python 3.12 instalado"},
+      {"t": "cmd", "v": "python3 --version"},
+      {"t": "ok", "v": "Python 3.12.7"}]}],
+    ["code", {"lenguaje": "python", "codigo": "def get_user(uid, actor):\n    user = User.get(uid)\n    if user.owner_id != actor.id:\n        raise Forbidden()\n    return user", "notas": "La regla vive junto al dato."}],
+    ["editor", {"archivo": "test_acceso.py", "lenguaje": "python", "codigo": "def test_no_ve_otro_usuario():\n    a, b = crear_dos()\n    r = api.get(f\"/user/{b.id}\", auth=a)\n    assert r.status == 403", "salida": "PASSED\ntest_acceso.py::test_no_ve_otro_usuario", "pie": "pytest -q · 1 passed in 0.04s"}],
+    ["card-info", {"variante": "danger", "titulo": "IDOR: acceso directo a objetos", "cuerpo": "El servidor valida que estés autenticado, pero nunca que el recurso sea tuyo."}],
+    ["card-compare", {"titulo": "Ruta vs modelo", "cols": [
+      {"nombre": "En el controlador", "badge": "RÁPIDO", "items": [{"v": "Regla duplicada"}, {"v": "Se olvida en el nuevo endpoint"}, {"v": "Test imposible de reusar"}]},
+      {"nombre": "En el modelo", "badge": "MEJOR", "items": [{"v": "Una sola fuente de verdad", "ok": true}, {"v": "Cubre todo acceso", "ok": true}, {"v": "Test unitario directo", "ok": true}]}]}],
+    ["stats", {"titulo": "Impacto medido", "items": [
+      {"valor": "4.2M", "etiqueta": "USD por brecha"},
+      {"valor": "277", "etiqueta": "días para detectarla"},
+      {"valor": "74%", "etiqueta": "viene de acceso indebido"}]}],
+    ["dato-hero", {"valor": "83%", "etiqueta": "de las APIs expuestas no valida el dueño del dato", "sub": "El endpoint responde igual con token de otro usuario.", "eyebrow": "Hallazgo", "fuente": "OWASP API Top 10"}],
+    ["split", {"titulo": "Autenticación vs autorización", "vs": "≠",
+      "izq": {"etiqueta": "Autenticación", "titulo": "¿Quién sos?", "cuerpo": "La resuelve el token.", "items": ["Se valida una vez", "Vive en el middleware"]},
+      "der": {"etiqueta": "Autorización", "titulo": "¿Qué podés tocar?", "cuerpo": "La resuelve el modelo.", "items": ["Se valida por objeto", "Mira owner_id"]}}],
+    ["progreso", {"titulo": "Madurez de la API", "valor": 45, "etiqueta": "Falta autorización por recurso y tests en CI.", "hitos": [
+      {"v": "Auth en todos los endpoints", "estado": "ok"},
+      {"v": "Regla de dueño en el modelo", "estado": "run"},
+      {"v": "Test 403 por recurso", "estado": "error"},
+      {"v": "Monitoreo de 403", "estado": "error"}]}],
+    ["fix", {"titulo": "El mismo endpoint, dos veces", "lenguaje": "python",
+      "error": "def get_user(uid):\n    return User.get(uid)",
+      "solucion": "def get_user(uid, actor):\n    u = User.get(uid)\n    if u.owner_id != actor.id:\n        raise Forbidden()\n    return u",
+      "nota": "Cinco líneas: 200 con datos ajenos vs 403 correcto."}],
+    ["diff", {"titulo": "Antes y después", "antes": "def get_user(uid):\n    return User.get(uid)", "despues": "def get_user(uid, actor):\n    u = User.get(uid)\n    if u.owner_id != actor.id:\n        raise Forbidden()\n    return u"}],
+    ["http", {"metodo": "GET", "ruta": "/v1/user/42", "codigo": "200", "nota": "sin auth", "request": "GET /v1/user/42\nAuthorization: (ninguna)", "response": "{\n  \"id\": 42,\n  \"role\": \"admin\"\n}"}],
+    ["browser", {"url": "https://api.tienda.com/v1/user/42", "titulo": "Datos de otro usuario", "vista": "email: a@b.c\nrole: admin"}],
+    ["diagram", {"titulo": "Dónde se rompe", "nodos": [
+      {"v": "Cliente", "sub": "user_id=42", "tipo": "info"},
+      {"v": "API", "sub": "valida token", "tipo": "info"},
+      {"v": "Modelo", "sub": "sin owner_id", "tipo": "alerta"},
+      {"v": "Base", "sub": "devuelve todo", "tipo": "alerta"}]}],
+    ["layers", {"titulo": "Dónde se valida", "flecha": "abajo", "capas": [
+      {"v": "Cliente", "sub": "nunca confiable", "tipo": "front"},
+      {"v": "API", "sub": "token válido", "tipo": "api"},
+      {"v": "Modelo", "sub": "dueño del dato", "tipo": "back"},
+      {"v": "Base", "sub": "filtro por owner", "tipo": "db"}]}],
+    ["pipeline", {"titulo": "CI de seguridad", "etapas": [
+      {"v": "Lint", "estado": "ok"}, {"v": "Tests", "estado": "ok"},
+      {"v": "Authz", "estado": "run"}, {"v": "Deploy", "estado": "idle"}]}],
+    ["timeline-fases", {"titulo": "Plan de 4 semanas", "etapas": [
+      {"v": "Semana 1", "sub": "Inventario", "estado": "ok"},
+      {"v": "Semana 2", "sub": "Regla en el modelo", "estado": "ok"},
+      {"v": "Semana 3", "sub": "Tests en CI", "estado": "run"},
+      {"v": "Semana 4", "sub": "Monitoreo", "estado": "error"}]}],
+    ["pasos", {"titulo": "Ruta de endurecimiento", "pasos": [
+      {"t": "Inventariar", "d": "Cada endpoint y quién puede llamarlo."},
+      {"t": "Cerrar", "d": "Regla de dueño en el modelo."},
+      {"t": "Verificar", "d": "Test 403 en CI por recurso."},
+      {"t": "Monitorear", "d": "Alerta cuando el 403 sube."}]}],
+    ["checklist", {"titulo": "Antes de publicar", "items": [
+      "Cada recurso valida owner_id", "El test 403 existe en CI",
+      "La regla vive en el modelo", "Ningún ID se acepta sin contexto"]}],
+    ["tabla", {"titulo": "Nivel de riesgo", "headers": ["Endpoint", "Auth", "Riesgo"], "filas": [
+      ["/user/42", "No", "Alto"], ["/orders", "Sí", "Bajo"],
+      ["/admin", "Sí", "Medio"], ["/export", "No", "Alto"]]}],
+    ["tree", {"titulo": "Estructura del módulo", "nodos": [
+      {"v": "app/", "depth": 0, "tipo": "dir"},
+      {"v": "models/", "depth": 1, "tipo": "dir"},
+      {"v": "user.py", "depth": 2, "tipo": "file"},
+      {"v": "api/", "depth": 1, "tipo": "dir"},
+      {"v": "routes.py", "depth": 2, "tipo": "file"},
+      {"v": "tests/", "depth": 1, "tipo": "dir"}]}],
+    ["indice", {"titulo": "Lo que verás", "items": [
+      "Qué es un IDOR", "Cómo se detecta", "El fix en el modelo", "Tests en CI", "Checklist final"]}],
+    ["faq", {"titulo": "Preguntas frecuentes", "items": [
+      {"q": "¿Sirve para GraphQL?", "a": "Sí: la regla vive en el resolver."},
+      {"q": "¿Y con microservicios?", "a": "Cada servicio valida su recurso."}]}],
+    ["mitos", {"mito": "Si el token es válido, el usuario es confiable.", "realidad": "El token dice quién es. El recurso dice si puede verlo.", "mito_sub": "Confundir autenticación con autorización", "realidad_sub": "Validar siempre el dueño del objeto"}],
+    ["quote", {"texto": "La autenticación dice quién sos. La autorización dice qué podés tocar.", "autor": "CHMODX", "rol": "Principio de diseño"}],
+    ["quiz", {"pregunta": "¿Dónde va la regla de autorización?", "opciones": [
+      {"v": "En el controlador", "ok": false}, {"v": "En el modelo", "ok": true},
+      {"v": "En el frontend", "ok": false}], "pie": "La respuesta está en el slide anterior"}],
+    ["social", {"kicker": "Próximo tema", "titulo": "SSRF: cuando el servidor hace la request por vos", "texto": "Guardá este carrusel y seguí la serie.", "cta": "SÍGUENOS"}],
+    ["card-repo", {"repo": "chmodx/api-guard", "desc": "Middleware de autorización por recurso con tests incluidos.", "badges": ["MIT", "passing", "v1.2.0"], "install": "$ pip install api-guard\n$ api-guard init", "tree": "api_guard/\n  rules.py\ntests/"}],
+    ["gh-stats", {"repo": "chmodx/api-guard", "desc": "Autorización por recurso, sin boilerplate.", "stars": "1.2k", "forks": "84", "issues": "6", "licencia": "MIT", "lenguajes": [{"n": "Python", "p": 78}, {"n": "Shell", "p": 14}, {"n": "Dockerfile", "p": 8}]}],
+    ["stack-tec", {"titulo": "Stack del proyecto", "items": [
+      {"v": "Python", "sub": "3.12"}, {"v": "FastAPI", "sub": "API"},
+      {"v": "Postgres", "sub": "datos"}, {"v": "Docker", "sub": "deploy"},
+      {"v": "GitHub Actions", "sub": "CI"}], "pie": "Todo corre con docker compose up"}],
+    ["error", {"titulo": "El error típico", "archivo": "app/models/user.py", "texto": "Traceback (most recent call last):\n  File \"app/models/user.py\", line 42, in get_user\n    return User.get(uid)\nAttributeError: 'NoneType' object has no attribute 'owner_id'", "linea": "El 500 esconde el 403 que faltaba", "pie": "El test vive en tests/test_acceso.py"}],
+    ["qr", {"url": "https://chmodxcode.pro/curso", "titulo": "Escaneá el curso", "pie": "Python completo desde cero", "escanea": "Escanea aquí"}]
+  ]
+}

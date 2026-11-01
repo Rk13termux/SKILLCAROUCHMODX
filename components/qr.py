@@ -12,7 +12,11 @@ MAX_URL = 320
 def _svg_qr(url, color="#000000"):
     import segno
     qr = segno.make(url, error="m")
-    return qr.svg_inline(scale=1, dark=color, light=None, border=0)
+    # omitsize: el SVG no fija width/height, así el CSS lo escala a la caja
+    # (con size fijo el QR se quedaba en su tamaño nativo, ~30px, dentro de
+    # una caja blanca de 300px).
+    return qr.svg_inline(scale=1, dark=color, light=None, border=0,
+                         omitsize=True)
 
 
 def render(props, ctx, warnings=None):

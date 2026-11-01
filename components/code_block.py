@@ -16,6 +16,7 @@ KEYWORDS = {
     "sql": "select from where insert into update set delete create table join on group by order limit and or null",
     "go": "func package import return if else for range var const type struct interface go defer chan select nil true false",
     "rust": "fn let mut pub use struct impl match if else for while return Some None Ok Err",
+    "php": "<?php echo print function return if else elseif foreach while for class new public private protected use namespace require include",
     "generic": "if else for while return function class import",
 }
 KEYWORDS["sh"] = KEYWORDS["bash"]
@@ -26,7 +27,7 @@ KEYWORDS["java"] = KEYWORDS["js"]
 
 _COMENT = {"python": r"#", "bash": r"#", "sh": r"#", "shell": r"#", "go": r"//",
            "js": r"//", "ts": r"//", "typescript": r"//", "java": r"//",
-           "rust": r"//", "sql": r"--"}
+           "php": r"//", "rust": r"//", "sql": r"--"}
 
 _TOKEN = re.compile(
     r"""(?P<com>#[^\n]*|//[^\n]*|--[^\n]*)"""

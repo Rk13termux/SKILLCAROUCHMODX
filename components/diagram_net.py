@@ -39,7 +39,10 @@ def render(props, ctx, warnings=None):
             if not etiqueta and i < len(etiquetas_planas):
                 etiqueta = str(etiquetas_planas[i])
             lbl = f'<span class="lbl">{_html.escape(etiqueta)}</span>' if etiqueta else ""
-            bloques.append(f'<div class="diagram__flecha">↓ {lbl}</div>')
+            bloques.append(
+                '<div class="diagram__flecha">'
+                '<span class="diagram__conector"></span>'
+                f"{lbl}</div>")
 
     titulo_html = (f'<div class="diagram__titulo">{_html.escape(str(titulo))}</div>'
                    if titulo else "")

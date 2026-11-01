@@ -134,11 +134,11 @@ def _circuitos(rgb, semilla: int = SEMILLA, n: int = 24):
                 cy = min(1875, max(45, cy + paso * rng.choice((-2, -1, 1, 2))))
             pts.append(f"L{cx} {cy}")
         trazos.append(f"<path d='M{x} {y} {' '.join(pts)}' "
-                      f"stroke='rgba({r},{g},{b},0.45)' stroke-width='2' "
+                      f"stroke='rgba({r},{g},{b},0.26)' stroke-width='2' "
                       "stroke-linecap='round'/>")
         for (px_, py_) in ((x, y), (cx, cy)):
             nodos.append(f"<circle cx='{px_}' cy='{py_}' r='5' "
-                         f"fill='rgba({r},{g},{b},0.7)'/>")
+                         f"fill='rgba({r},{g},{b},0.42)'/>")
     return _svg("".join(trazos) + "".join(nodos))
 
 

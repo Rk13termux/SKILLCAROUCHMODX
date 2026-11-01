@@ -42,8 +42,15 @@ def render(props, ctx, warnings=None):
         badge = col.get("badge") or ("VS" if i == 0 and len(cols) > 1 else "")
         nombre = _html.escape(str(col.get("nombre") or col.get("name") or f"Opción {i+1}"))
         html_badge = f'<div class="card-compare__badge">{_html.escape(str(badge))}</div>' if badge else ""
+        # Columna ganadora: la que tiene algún item con ok:true.
+        gana = any(isinstance(x, dict) and x.get("ok") is True for x in items)
+        clases = f"card-compare__col card-compare__col--{lado}"
+        if gana:
+            clases += " card-compare__col--win"
+            if str(badge).strip().upper() not in ("MEJOR", "BEST", "WIN"):
+                clases += " card-compare__col--ribbon"
         celdas.append(
-            f'<div class="card-compare__col card-compare__col--{lado}">'
+            f'<div class="{clases}">'
             f"{html_badge}"
             f'<div class="card-compare__nombre">{nombre}</div>'
             f'{"".join(_item(x) for x in items)}</div>'

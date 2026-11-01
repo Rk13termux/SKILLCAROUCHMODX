@@ -3,11 +3,39 @@
 import html as _html
 
 try:
-    from ..theme.colors import VARIANTES
+    from ..theme.colors import VARIANTES, acento_vars
 except ImportError:  # import como paquete top-level (builder)
-    from theme.colors import VARIANTES
+    from theme.colors import VARIANTES, acento_vars
 
 MAX_CUERPO = 260  # ~3 líneas en 9:16
+
+# Variante → glyph del registry (icono SVG de la casa, no un carácter).
+GLYPH_VARIANTE = {
+    "info": "info",
+    "tip": "lightbulb",
+    "warn": "triangle-alert",
+    "danger": "shield-alert",
+}
+
+
+def _icono_svg(nombre, accent):
+    """Glyph del registry → <img> data-URI, o '' si no hay icono."""
+    if not nombre or not accent:
+        return ""
+    try:
+        from ..icons import get_icon
+    except ImportError:
+        try:
+            from icons import get_icon
+        except ImportError:
+            return ""
+    try:
+        uri = get_icon(nombre, acento_vars(accent))
+    except Exception:  # noqa: BLE001 - el icono nunca debe romper el slide
+        return ""
+    if not uri:
+        return ""
+    return f'<img src="{uri}" alt="">'
 
 
 def render_info(props, ctx, warnings=None):
@@ -19,10 +47,13 @@ def render_info(props, ctx, warnings=None):
         cuerpo = cuerpo[:MAX_CUERPO].rsplit(" ", 1)[0] + "…"
         if warnings is not None:
             warnings.append("card-info: cuerpo recortado (>260 caracteres)")
+    # Icono SVG semántico: prop `icono` > variante > carácter de respaldo.
+    glyph = props.get("icono") or props.get("icon") or GLYPH_VARIANTE.get(variante)
+    icono_html = _icono_svg(str(glyph), ctx.get("accent")) or _html.escape(ico)
     return (
         f'<div class="card-info" style="--card-borde:{borde}">'
         '<div class="card-info__head">'
-        f'<div class="card-info__ico">{ico}</div>'
+        f'<div class="card-info__ico">{icono_html}</div>'
         f'<div class="card-info__titulo">{titulo}</div>'
         "</div>"
         f'<div class="card-info__cuerpo">{cuerpo}</div>'

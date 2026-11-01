@@ -149,6 +149,9 @@ Reglas de copy:
 
 Los componentes van declarados en el slide fuente dentro de `.contenido`. El builder los expande a HTML+CSS y falla si falta el wrapper `.slide` (ver "Regla de oro").
 
+**32 componentes.** Referencia visual de todos: `componentes-test/componentes.png`
+(regenerable con `python3 componentes-test/regenerar.py`).
+
 Sintaxis (data-props es JSON con comillas dobles, atributo con comillas simples):
 
 ```html
@@ -178,7 +181,7 @@ Si `data-props` no está, el JSON se toma del texto interior del `<div class="co
 | `diff` | Antes vs después (código/config) | `titulo`, `antes`, `despues` |
 | `stats` | Métricas / cifras impacto | `titulo`, `items: [{valor, etiqueta}]` |
 | `tabla` | Tabla comparativa densa | `titulo`, `headers: []`, `filas: [[]]` |
-| `layers` | Capas (OSI, Docker, pirámide) | `titulo`, `capas: [{v, sub, tipo}]` |
+| `layers` | Capas (OSI, Docker, pirámide) | `titulo`, `capas: [{v, sub, tipo}]`, `flecha: arriba\|abajo` |
 | `pipeline` | Etapas CI/CD o flujo deploy | `titulo`, `etapas: [{v, estado: ok\|run\|warn\|err\|idle}]` |
 | `faq` | Pregunta + respuesta / objeciones | `titulo`, `pregunta`, `respuesta` o `items: [{q, a}]` |
 | `quote` | Cita o principio editorial | `texto`, `autor` (default `CHMODX`), `rol` |
@@ -190,6 +193,10 @@ Si `data-props` no está, el JSON se toma del texto interior del `<div class="co
 | `error` | Consola con traceback real (errores típicos) | `titulo`, `archivo`, `texto` (traceback completo), `linea` (resumen), `pie` |
 | `timeline-fases` | Ruta de aprendizaje por fases/semanas (alias `roadmap`) | `titulo`, `etapas: [{v, sub, estado: ok\|run\|error}]`, `pie` |
 | `indice` | "Lo que verás" numerado (alias `toc`) | `titulo`, `items: ["...", ...]` o `[{v}]`, `pie` |
+| `dato-hero` | Una cifra gigante + contexto: el freno de scroll (alias `hero`, `dato`, `cifra`) | `valor`, `etiqueta`, `sub`, `eyebrow`, `fuente` |
+| `split` | Dos paneles enfrentados con VS central, sin código (alias `vs-panel`, `dos-paneles`) | `titulo`, `izq`/`der: {etiqueta, titulo, cuerpo, items}`, `vs` |
+| `progreso` | Barra de avance con hitos de estado (alias `progress`, `avance`, `madurez`) | `titulo`, `valor: 0-100`, `etiqueta`, `hitos: [{v, estado: ok\|run\|error}]` |
+| `fix` | El error a la izquierda, la solución a la derecha (alias `error-fix`, `solucion`) | `titulo`, `error`, `solucion`, `lenguaje`, `nota` |
 
 Reglas por componente (el builder valida y avisa):
 - **`code`**: máx 8 líneas visibles por slide. Si es más largo, dividiólo en 2 slides. Tipografía mono Hask, fondo `#0F172A`, borde `#334155`.
@@ -202,7 +209,7 @@ Reglas por componente (el builder valida y avisa):
 - **`diff`**: máx 8 líneas en total (4+4); panel ANTES rojo / DESPUÉS verde.
 - **`stats`**: máx 4 tarjetas; valores solo verificables o cualitativos (nunca cifras inventadas).
 - **`tabla`**: máx 4 filas.
-- **`layers`**: máx 5 capas; `tipo: front|back|db|api` tiñe el borde.
+- **`layers`**: máx 5 capas; `tipo: front|back|db|api` tiñe el borde; `flecha` (`arriba` default · `abajo` para flujos que bajan) elige la dirección del separador.
 - **`pipeline`**: máx 5 etapas; `estado: ok|run|warn|err|idle`.
 - **`faq`**: máx 3 items (o 1 `pregunta`+`respuesta`).
 - **`quiz`**: máx 4 opciones; 1 sola `ok: true`; el `pie` apunta al siguiente slide.
@@ -213,6 +220,10 @@ Reglas por componente (el builder valida y avisa):
 - **`error`**: máx 12 líneas. `Traceback`/`Error`/`Exception` se tiñen de rojo, `File`/contexto en ámbar.
 - **`timeline-fases`**: máx 6 etapas. `estado` = `ok` (✓ acento) · `run` (▶ ámbar) · `error` (✕ rojo).
 - **`indice`**: máx 7 items; numerados automáticamente.
+- **`dato-hero`**: una sola cifra por slide; `sub` ≤190 caracteres; `fuente` obligatoria si la cifra es verificable. Cuenta como bloque *hero* en el QA de ritmo.
+- **`split`**: 2 paneles, máx 4 items por lado; si el contenido es código usá `diff` o `fix`.
+- **`progreso`**: `valor` 0-100; máx 5 hitos; `estado` = `ok` (verde) · `run` (ámbar) · `error` (rojo).
+- **`fix`**: máx 6 líneas por panel; mismo lenguaje en los dos; el panel roto va en `error` y el arreglado en `solucion`.
 - Todo componente respeta 1 idea principal por slide.
 
 ## Componentes por categoría de post (matriz)
@@ -454,6 +465,7 @@ Salidas en la carpeta del tema: `renders/` (HTML), `preview/` (PNG), `stories/`,
 - Cada PNG: ícono nítido, portada con badge + barra de progreso, N-1 con puente, N con botón de CTA, 1 clave por línea de título en `--resalte`, sin texto cortado.
 - Componentes: terminal/código legibles en el móvil, comparativas sin desborde, diagrama ≤5 nodos. Con `--contact-sheet`, revisá la grilla completa de un vistazo.
 - **QA de repetición (automática):** al terminar, el builder compara el contenido de los slides fuente y avisa si dos slides no consecutivos comparten ≥85% del texto, o si un mismo componente aparece en la mitad o más de los slides. Son avisos, no bloquean.
+- **QA de ritmo (automática):** avisa si dos slides consecutivos comparten **familia visual** (`código` · `lista` · `tarjeta` · `datos` · `flujo`), si un slide acumula más de 2 componentes, o si mezcla 2 bloques *hero* (`stats`, `quote`, `social`, `qr`, `card-compare`). Tampoco bloquea: es una guía de composición.
 - **Revisión de arte (automática):** sobre los PNG finales mide la **tinta** (umbral absoluto de luminancia, para no confundir el grano del fondo con texto) y avisa si la tinta toca el borde (contenido cortado) o si el contraste texto/fondo baja de 3:1. Imprime además un resumen: `✓ Arte: tinta desde Npx arriba y Mpx abajo · contraste mín X:1`.
 - **Preflight (`--check`):** corre props, límites de copy, keywords y componentes **sin Chromium ni PNG** (segundos). Usalo para iterar el guion antes de gastar render.
 - `caption.txt`: tema, palabra CTA, hashtags. Con `--landing`, verifica que arranque con el dominio (y el segundo enlace si usás `--landing2`).
@@ -488,7 +500,7 @@ python3 ~/.config/opencode/skills/tech-carousel/brief.py --dry-run  # sólo impr
 - **Tamaño mínimo de texto:** cuerpo del slide `__body_size__` (44px) y componentes `__comp_base__` × `__comp_zoom__` ≥ 32px de diseño. Nunca achicar texto para que quepa: aligerá el shell (`ajustes` en `_format_scaling()`) o acortá el copy.
 - **Píldora swipe:** padding 18px/32px, `min-height: __ind_h__px` (72 en 9:16, 56 en 4:5, 54 en 3:4, oculta en 1:1).
 - **Tipografía:** display **Inter** (títulos/cuerpo) + mono **Hasklig → JetBrains Mono** (código/terminal). El `font-family` del mono siempre termina en `SFMono-Regular, Menlo, Consolas, monospace` para que funcione offline.
-- **Fondo:** slides `#000000`, superficies `#141417`/`#1F2937`, bloques técnicos `#0F172A`, bordes `#26262B`/`#334155`.
+- **Fondo:** slides `#000000`; **superficies de componente con elevación** (`--surf`, `--s1 #0B0B10` / `--s2 #121219` / `--s3 #1A1A23`), borde de luz en degradado de acento (`--borde-deg`) y sombra con ambiente tintado (`--sombra`). Ningún componente usa negro plano como fondo (ver `PLAN-VISUAL.md`). Bloques técnicos `#0F172A`, bordes base `#24242E`/`#334155`.
 - **Fondo del slide:** viñeta + degradado base en `.slide::before` (el mesh de glows del acento solo aparece en `--fondo mesh`), y circuitos (**por defecto**) + grano en `.slide::after`, **por debajo** del contenido (`z-index: 1`) y con coordenadas en `%`, así el mismo CSS sirve para 9:16, 2:3, 3:4, 4:5, 1:1 y 16:9. Determinista (`theme/fondos.py`, semilla fija): mismo tema → mismo fondo en todos los renders. Sin estrellas ni glows.
 - **Accesibilidad:** contraste AA mínimo. Si `--resalte` contra `#000000` no llega a 4.5:1, el builder avisa.
 

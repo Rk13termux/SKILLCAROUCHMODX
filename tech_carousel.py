@@ -50,8 +50,8 @@ try:
 except ImportError:
     Image = None
 
-from components import expandir
-from icons import detectar_categoria, elegir_icono, icono_slide
+from components import ALIAS as COMP_ALIAS, expandir
+from icons import detectar_categoria, elegir_icono, get_icon, icono_slide
 from theme import colors as _colors
 from theme import fondos as _fondos
 from theme import fonts as _fonts
@@ -99,7 +99,8 @@ _GPU_PROBLEMA = False
 
 def _cmd_chromium(*args):
     global _GPU_PROBLEMA
-    cmd = [CHROMIUM, "--headless", "--no-sandbox", "--disable-gpu"]
+    cmd = [CHROMIUM, "--headless", "--no-sandbox", "--disable-gpu",
+           "--disable-dev-shm-usage"]
     if _GPU_PROBLEMA:
         cmd.append("--in-process-gpu")
     cmd.extend(args)
@@ -326,6 +327,30 @@ __links_fuentes__
     --acento-rgba-40: __accent_rgba_40__;
     --resalte: __resalte__;
     --resalte-brillo: __resalte_brillo__;
+
+    /* ── Elevation: sistema de superficies ─────────────────────── */
+    --s1: #0B0B10;          /* superficie de componente */
+    --s2: #121219;          /* sub-panel / bloque anidado */
+    --s3: #1A1A23;          /* chip, badge, gutter */
+    --linea: #24242E;       /* borde base */
+    --radio-sm: 12px;
+    --radio-md: 18px;
+    --radio-lg: 24px;
+    --mono: 'Hasklig', 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
+    --surf: linear-gradient(180deg,
+        color-mix(in srgb, var(--acento) 8%, #0B0B10),
+        #0B0B10 62%);
+    --surf-2: linear-gradient(180deg,
+        color-mix(in srgb, var(--acento) 5%, #121219),
+        #101017);
+    --borde-deg: linear-gradient(145deg,
+        color-mix(in srgb, var(--acento) 72%, transparent) 0%,
+        color-mix(in srgb, var(--acento) 14%, #24242E) 46%,
+        #24242E 100%);
+    --sombra: 0 28px 60px -26px #000,
+              0 10px 30px -18px var(--acento-rgba-30);
+    --sombra-edge: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    --glow: 0 0 44px -12px var(--acento-rgba-40);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { overflow: hidden; height: 100%; }
@@ -557,24 +582,36 @@ __links_fuentes__
     display: __ind_disp__;
     align-items: center;
     justify-content: center;
-    gap: 14px;
+    gap: 12px;
     min-height: __ind_h__px;
     margin-top: __ind_margin__px;
-    padding: 18px 32px;
-    border: 2px solid var(--acento-rgba-40);
-    border-radius: 60px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+    padding: 14px 28px 14px 14px;
+    border: 1.5px solid transparent;
+    border-radius: 999px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)) padding-box,
+      linear-gradient(145deg, color-mix(in srgb, var(--acento) 60%, transparent),
+        rgba(255, 255, 255, 0.06) 55%, #24242E) border-box;
+    font-family: var(--mono);
     font-weight: 600;
     font-size: __ind_size__px;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.6px;
     color: #DCDCE2;
     text-align: center;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 12px 28px -16px #000, 0 0 30px -16px var(--acento-rgba-40);
   }
   .ind-swipe .flecha {
-    color: var(--acento-brillo);
-    font-weight: 700;
-    text-shadow: 0 0 14px var(--acento-rgba-40);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.95em;
+    height: 1.95em;
+    border-radius: 50%;
+    background: var(--acento);
+    color: #0B0B10;
+    font-weight: 800;
+    text-shadow: none;
+    box-shadow: 0 0 20px -4px var(--acento-rgba-40);
   }
 
   .pie {
@@ -762,21 +799,43 @@ __links_fuentes__
   }
   .guia-card {
     margin-top: 26px;
-    border-left: 6px solid var(--acento);
-    border-radius: 0 16px 16px 0;
-    background: rgba(255, 255, 255, 0.04);
-    padding: 16px 22px;
+    border: 1.5px solid transparent;
+    border-radius: var(--radio-md);
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--acento) 7%, #0B0B10), #0B0B10 72%) padding-box,
+      var(--borde-deg) border-box;
+    padding: 20px 24px 20px 28px;
     text-align: left;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--sombra), var(--sombra-edge);
+  }
+  .guia-card::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, var(--acento), transparent);
   }
   .guia-card__tag {
-    font-size: 26px;
+    font-family: var(--mono);
+    font-size: 24px;
     font-weight: 800;
     letter-spacing: 3px;
+    text-transform: uppercase;
     color: var(--acento);
-    margin-bottom: 6px;
+    margin-bottom: 8px;
   }
-  .guia-card__t { font-weight: 800; font-size: 36px; color: #FFFFFF; line-height: 1.3; }
-  .guia-card__s { font-size: 32px; color: #C9CDD3; line-height: 1.4; margin-top: 4px; }
+  .guia-card__t { font-weight: 800; font-size: 36px; color: #FFFFFF; line-height: 1.3; letter-spacing: -0.01em; }
+  .guia-card__s { font-size: 30px; color: #9AA2B1; line-height: 1.45; margin-top: 6px; }
+  /* Portada: el componente gancho entra en modo showcase (más luz, mismo layout) */
+  .comp-wrap--showcase > * {
+    box-shadow: var(--sombra), var(--sombra-edge), var(--glow);
+    --borde-deg: linear-gradient(145deg,
+        color-mix(in srgb, var(--acento) 90%, transparent) 0%,
+        color-mix(in srgb, var(--acento) 22%, #24242E) 46%,
+        #24242E 100%);
+  }
   .comp-error {
     margin-top: 24px;
     padding: 18px 22px;
@@ -1365,22 +1424,37 @@ if(!t||!c){return;}
 var a=document.querySelector('.ajuste')||c;
 var casos=JSON.parse(document.getElementById('tam-casos').textContent);
 var elegido=0;
+function tinta(el){
+  var rg=document.createRange(); rg.selectNodeContents(el);
+  var rs=rg.getClientRects(), l=1e9, r=-1e9;
+  for(var j=0;j<rs.length;j++){
+    if(rs[j].width>0&&rs[j].height>0){l=Math.min(l,rs[j].left); r=Math.max(r,rs[j].right);}
+  }
+  return r>l?{l:l,r:r}:null;
+}
 function recorte(){
   var cr=c.getBoundingClientRect(), bottom=-1e9, top=1e9, n=0;
+  var left=1e9, right=-1e9;
   for(var i=0;i<a.children.length;i++){
     var r=a.children[i].getBoundingClientRect();
     if(r.height>0){n++; bottom=Math.max(bottom,r.bottom); top=Math.min(top,r.top);}
+    var tx=tinta(a.children[i]);
+    if(tx){left=Math.min(left,tx.l); right=Math.max(right,tx.r);}
   }
   if(!n){return 0;}
   return Math.max(c.scrollHeight-c.clientHeight,
-                  Math.round(bottom-cr.bottom), Math.round(cr.top-top));
+                  Math.round(bottom-cr.bottom), Math.round(cr.top-top),
+                  Math.round(cr.left-left), Math.round(right-cr.right));
 }
+function medir(){
 for(var k=0;k<casos.length;k++){
   t.style.fontSize=casos[k]+'px';
   void a.offsetHeight;
-  if(recorte()<=0){elegido=casos[k];break;}
+  if(recorte()<=-6){elegido=casos[k];break;}
 }
 t.setAttribute('data-tam', elegido);
+}
+if(document.fonts&&document.fonts.ready){document.fonts.ready.then(medir);}else{medir();}
 })();</script>"""
 
 _RE_COVER_TITLE = re.compile(r"(\.slide\.cover \.titulo \{\s*font-size: )(\d+)(px)")
@@ -1542,6 +1616,13 @@ def _landing_dominio(url):
     return d.rstrip("/") or (url or "").strip()
 
 
+def _cta_markup(texto):
+    """Texto de la tarjeta final: escapa HTML y vuelve *palabra* un .clave."""
+    t = (texto or "").strip()
+    t = t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    return re.sub(r"\*(.+?)\*", r'<span class="clave">\1</span>', t)
+
+
 def _elegir_recap(titulos):
     """3 títulos repartidos (inicio/medio/cierre), 7 palabras máx c/u."""
     limpios = [t for t in titulos if _contar_palabras(t) >= 2]
@@ -1565,7 +1646,8 @@ def generar_html(i, n, data, fmt_key, fmt, accent_vars, isotipo, marca,
                   guia=True, guia_tag=None, guia_titulo=None, guia_sub=None,
                   comandos_finales=None, cta_modo="seguir", recap_titulos=None,
                   landing=None, landing2=None, landing2_texto=None,
-                  plano=False, categoria=None, fondo="auto", fondo_fijo=False):
+                  plano=False, categoria=None, fondo="auto", fondo_fijo=False,
+                  cta_card=None, cta_sin_terminal=False):
     numero = data["number"] if data["number"] else f"{i}/{n}"
     cuerpo = _quitar_indicador(data["body"])
     cls = _clase_slide(i, n)
@@ -1587,7 +1669,9 @@ def generar_html(i, n, data, fmt_key, fmt, accent_vars, isotipo, marca,
         comp_html = ""
         corte = cuerpo.find('<div class="comp-wrap">')
         if corte != -1:
-            comp_html = cuerpo[corte:]
+            comp_html = cuerpo[corte:].replace(
+                '<div class="comp-wrap">',
+                '<div class="comp-wrap comp-wrap--showcase">', 1)
             cuerpo = cuerpo[:corte]
         titulo_c, subtitulo_c = _hook_portada(cuerpo, kw, semilla)
         extra = f'<div class="titulo">{titulo_c}</div>'
@@ -1662,7 +1746,7 @@ def generar_html(i, n, data, fmt_key, fmt, accent_vars, isotipo, marca,
                 f'<div class="secundario">Guarda este carrusel o pásaselo a tu '
                 f'equipo técnico · {marca}</div>')
         terminal_html = ""
-        if comandos_finales:
+        if comandos_finales and not cta_sin_terminal:
             tope_term = 6 if landing else 12
             props_term = {"titulo": "comandos · listos para copiar",
                           "lines": [{"t": "cmd", "v": c}
@@ -1696,11 +1780,15 @@ def generar_html(i, n, data, fmt_key, fmt, accent_vars, isotipo, marca,
                 'están en el <b>primer comentario</b></div>'
             )
         else:
+            tarjeta = ('<div class="cta-grande">COPIA LOS COMANDOS DEL '
+                       '<span class="clave">PRIMER COMENTARIO</span></div>')
+            if cta_card:
+                tarjeta = (f'<div class="cta-grande">{_cta_markup(cta_card)}'
+                           '</div>')
             extra = (
                 '<div class="titulo">¿Listo para aplicarlo?</div>'
-                + terminal_html +
-                '<div class="cta-grande">COPIA LOS COMANDOS DEL '
-                '<span class="clave">PRIMER COMENTARIO</span></div>'
+                + terminal_html
+                + tarjeta
                 + boton_cta
                 + secundario
             )
@@ -1983,6 +2071,62 @@ def qa_repeticion(input_dir, nombres, umbral=0.85):
         if k >= 4 and k / total >= 0.5:
             avisos.append(f"componente '{c}' aparece en {k}/{total} slides: "
                           f"variá el ritmo visual.")
+    return avisos
+
+
+# ── Ritmo: familias alternas y jerarquía por slide ─────────────────
+
+FAMILIAS = {
+    "código": {"terminal", "code", "editor", "diff", "error", "http", "fix"},
+    "lista": {"checklist", "pasos", "timeline-fases", "indice", "faq", "tree"},
+    "tarjeta": {"card-info", "card-compare", "card-repo", "mitos", "social",
+                "quote", "split"},
+    "datos": {"stats", "tabla", "gh-stats", "dato-hero", "progreso"},
+    "flujo": {"diagram", "browser", "layers", "pipeline", "quiz", "stack-tec",
+              "qr"},
+}
+# Un solo bloque "hero" por slide: son los que frenan el scroll y compiten.
+HEROES = {"stats", "quote", "social", "qr", "card-compare", "dato-hero"}
+_FAMILIA_DE = {c: f for f, comps in FAMILIAS.items() for c in comps}
+
+
+def _normalizar_componentes(comps):
+    return [COMP_ALIAS.get(c, c) for c in comps]
+
+
+def _familia_de(comps):
+    for c in comps:
+        if c in _FAMILIA_DE:
+            return _FAMILIA_DE[c]
+    return None
+
+
+def qa_ritmo(input_dir, nombres):
+    """Avisos de composición: familias repetidas, slides sobrecargados y
+    héroes que compiten. Igual que qa_repeticion: no bloquea."""
+    avisos = []
+    fuentes = _componentes_fuente(input_dir, nombres)
+    por_slide = {n: _normalizar_componentes(c) for n, c in fuentes.items()}
+    orden = [n for n in nombres if n in por_slide]
+
+    for a, b in zip(orden, orden[1:]):
+        fa, fb = _familia_de(por_slide[a]), _familia_de(por_slide[b])
+        if fa and fa == fb:
+            avisos.append(
+                f"{a} y {b} comparten familia «{fa}»: alterná el tipo de "
+                f"bloque para que el ojo no lea lo mismo dos veces.")
+
+    for nombre in orden:
+        comps = por_slide[nombre]
+        if len(comps) > 2:
+            avisos.append(
+                f"{nombre} acumula {len(comps)} componentes "
+                f"({', '.join(comps)}): una idea por slide.")
+        heroes = [c for c in comps if c in HEROES]
+        if len(heroes) > 1:
+            avisos.append(
+                f"{nombre} tiene {len(heroes)} bloques hero "
+                f"({', '.join(heroes)}): dejá uno, el resto baja a cuerpo.")
     return avisos
 
 
@@ -2417,7 +2561,8 @@ _CLAVES_LOTE = {
     "landing2_texto": "--landing2-texto", "marca": "--marca",
     "display_tema": "--display-tema", "short_tema": "--short-tema",
     "badge": "--badge", "cta_palabra": "--cta-palabra",
-    "cta_modo": "--cta-modo", "hashtags": "--hashtags",
+    "cta_modo": "--cta-modo", "cta_card": "--cta-card",
+    "hashtags": "--hashtags",
     "resalte": "--resalte", "workers": "--workers", "repo": "--repo",
     "guia_titulo": "--guia-titulo", "guia_sub": "--guia-sub",
 }
@@ -2427,6 +2572,7 @@ _BOOL_LOTE = {
     "incremental": "--incremental", "sin_autofit": "--sin-autofit",
     "contact_sheet": "--contact-sheet", "pdf": "--pdf", "reel": "--reel",
     "copy_redes": "--copy-redes", "sin_guia": "--sin-guia",
+    "cta_sin_terminal": "--cta-sin-terminal",
     "offline": "--offline", "no_auto": "--no-auto", "check": "--check",
 }
 
@@ -2545,6 +2691,11 @@ def main(argv=None):
                     choices=["comentar", "seguir"],
                     help="comentar: botón 'Comenta X'; seguir: botón "
                          "'SÍGUENOS' con gatillo de valor")
+    ap.add_argument("--cta-card", default=None,
+                    help="Reemplaza la tarjeta grande del cierre (usa "
+                         "*palabra* para resaltarla en acento)")
+    ap.add_argument("--cta-sin-terminal", action="store_true",
+                    help="No repite el terminal de comandos en el cierre")
     ap.add_argument("--hashtags", default=None)
     ap.add_argument("--resalte", default=None,
                     help="Color de las keywords (default: el mismo --color)")
@@ -2818,6 +2969,14 @@ def main(argv=None):
         nombre_ico, icono = elegir_icono(
             i, n, accent_vars, tema=cat, texto=texto_ico,
             usados=usados_iconos)
+        # Override explícito del slide fuente: <div class="icono">binance</div>
+        pedido = (data.get("icono") or "").strip().lower()
+        if pedido:
+            uri_pedido = get_icon(pedido, accent_vars, cat)
+            if uri_pedido:
+                nombre_ico, icono = pedido, uri_pedido
+            else:
+                warnings.append(f"slide {i}: icono '{pedido}' no existe")
         if nombre_ico:
             usados_iconos.add(nombre_ico)
         html = generar_html(i, n, data, args.formato, fmt, accent_vars,
@@ -2830,6 +2989,8 @@ def main(argv=None):
                             guia_sub=args.guia_sub,
                             comandos_finales=comandos_finales,
                             cta_modo=args.cta_modo,
+                            cta_card=args.cta_card,
+                            cta_sin_terminal=args.cta_sin_terminal,
                             recap_titulos=recap_titulos,
                             landing=args.landing,
                             landing2=args.landing2,
@@ -2928,6 +3089,12 @@ def main(argv=None):
     if avisos_rep:
         print("\n  ! QA de repetición:")
         for a in avisos_rep:
+            print(f"    - {a}")
+
+    avisos_ritmo = qa_ritmo(input_dir, nombres_html)
+    if avisos_ritmo:
+        print("\n  ! QA de ritmo:")
+        for a in avisos_ritmo:
             print(f"    - {a}")
 
     generar_story(input_dir, display, resalte_hex, isotipo, accent_vars, marca)

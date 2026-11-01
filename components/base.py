@@ -9,6 +9,7 @@ Si falta `data-props`, el JSON se lee del interior del div. El atributo usa
 comillas simples para que el JSON pueda llevar comillas dobles.
 """
 
+import html as _html
 import json
 import re
 
@@ -44,7 +45,10 @@ def extraer_componente(body: str):
     props = {}
     if props_txt.strip():
         try:
-            props = json.loads(props_txt)
+            # El atributo va con comillas simples, así que un apóstrofo dentro
+            # del JSON llega como entidad (&apos; / &#39;). Se desescapa antes
+            # de parsear: `'NoneType'` debe quedar `'NoneType'`, no `&amp;#39;`.
+            props = json.loads(_html.unescape(props_txt))
         except json.JSONDecodeError as e:
             return (f'<div class="comp-error">⚠ JSON inválido en '
                     f'componente "{nombre}": {e}</div>' + resto, nombre, None)
@@ -198,6 +202,26 @@ def _index(p, ctx):
     return render_index(p, ctx)
 
 
+def _dato_hero(p, ctx):
+    from .nuevos import render_dato_hero
+    return render_dato_hero(p, ctx)
+
+
+def _split(p, ctx):
+    from .nuevos import render_split
+    return render_split(p, ctx)
+
+
+def _progreso(p, ctx):
+    from .nuevos import render_progreso
+    return render_progreso(p, ctx)
+
+
+def _fix(p, ctx):
+    from .nuevos import render_fix
+    return render_fix(p, ctx)
+
+
 RENDERIZADORES = {
     "terminal": _terminal,
     "card-info": _card_info,
@@ -227,6 +251,10 @@ RENDERIZADORES = {
     "error": _error,
     "timeline-fases": _timeline,
     "indice": _index,
+    "dato-hero": _dato_hero,
+    "split": _split,
+    "progreso": _progreso,
+    "fix": _fix,
 }
 
 ALIAS = {
@@ -294,6 +322,20 @@ ALIAS = {
     "frase": "quote",
     "test-rapido": "quiz",
     "pregunta": "quiz",
+    "hero": "dato-hero",
+    "dato": "dato-hero",
+    "cifra": "dato-hero",
+    "numero-grande": "dato-hero",
+    "vs-panel": "split",
+    "dos-paneles": "split",
+    "comparacion": "split",
+    "progress": "progreso",
+    "avance": "progreso",
+    "madurez": "progreso",
+    "error-fix": "fix",
+    "solucion": "fix",
+    "antes-fix": "fix",
+    "reparado": "fix",
 }
 
 

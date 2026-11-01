@@ -74,10 +74,13 @@ def render_quote(props, ctx, warnings=None):
     autor = props.get("autor") or props.get("author") or "CHMODX"
     rol = props.get("rol") or props.get("rol_autor") or ""
     rol_html = f'<div class="quote__rol">{_html.escape(str(rol))}</div>' if rol else ""
+    inicial = (str(autor).strip()[:1] or "C").upper()
     return (
         '<div class="quote">'
         f'<div class="quote__text">“{_html.escape(str(texto))}”</div>'
-        f'<div class="quote__autor">— {_html.escape(str(autor))}</div>{rol_html}</div>'
+        '<div class="quote__autor">'
+        f'<span class="quote__ava">{_html.escape(inicial)}</span>'
+        f'<span>— {_html.escape(str(autor))}</span></div>{rol_html}</div>'
     )
 
 
