@@ -800,7 +800,7 @@ __links_fuentes__
     color: #E5E7EB;
   }
   .guia-card {
-    margin-top: 26px;
+    margin-top: __guia_margin__px;
     border: 1.5px solid transparent;
     border-radius: var(--radio-md);
     background:
@@ -821,15 +821,15 @@ __links_fuentes__
   }
   .guia-card__tag {
     font-family: var(--mono);
-    font-size: 24px;
+    font-size: __guia_tag__px;
     font-weight: 800;
     letter-spacing: 3px;
     text-transform: uppercase;
     color: var(--acento);
     margin-bottom: 8px;
   }
-  .guia-card__t { font-weight: 800; font-size: 36px; color: #FFFFFF; line-height: 1.3; letter-spacing: -0.01em; }
-  .guia-card__s { font-size: 30px; color: #9AA2B1; line-height: 1.45; margin-top: 6px; }
+  .guia-card__t { font-weight: 800; font-size: __guia_t__px; color: #FFFFFF; line-height: 1.3; letter-spacing: -0.01em; }
+  .guia-card__s { font-size: __guia_s__px; color: #9AA2B1; line-height: 1.45; margin-top: 6px; }
   /* Portada: el componente gancho entra en modo showcase (más luz, mismo layout) */
   .comp-wrap--showcase > * {
     box-shadow: var(--sombra), var(--sombra-edge), var(--glow);
@@ -916,6 +916,8 @@ def _format_scaling(fmt_key):
             "__landing_dom_size__": 46, "__contenido_zoom__": 1,
             "__comp_zoom__": 0.72, "__comp_margin__": 16, "__comp_base__": 45,
             "__ind_h__": 46, "__ind_disp__": "inline-flex",
+            "__guia_tag__": 20, "__guia_t__": 24, "__guia_s__": 22,
+            "__guia_margin__": 14,
         }
         sc["__cover_title__"] = round(sc["__title_size__"] *
                                       _COVER_TITLE_FACTOR)
@@ -941,6 +943,8 @@ def _format_scaling(fmt_key):
             "__title_size__": 54, "__title_margin__": 8, "__body_size__": 37,
             "__ind_margin__": 14, "__ind_size__": 20,
             "__ind_disp__": "none", "__ind_h__": 72,
+            "__guia_tag__": 20, "__guia_t__": 28, "__guia_s__": 24,
+            "__guia_margin__": 16,
         })
         sc["__cover_title__"] = round(sc["__title_size__"] * _COVER_TITLE_FACTOR)
         return sc
@@ -965,21 +969,28 @@ def _format_scaling(fmt_key):
         "__contenido_zoom__": 1,
     }
     ajustes = {
-        "3:4": {"__pad_top__": 62, "__pad_bottom__": 160,
-                "__comp_zoom__": 0.80, "__comp_margin__": 20,
-                "__icon_size__": 96, "__icon_margin__": 14,
-                "__title_size__": 70, "__title_margin__": 22,
-                "__ind_margin__": 16, "__ind_h__": 54},
-        "4:5": {"__pad_top__": 60, "__pad_bottom__": 138,
-                "__comp_zoom__": 0.80, "__comp_margin__": 16,
-                "__icon_size__": 80, "__icon_margin__": 10,
-                "__title_size__": 66, "__title_margin__": 20,
-                "__ind_margin__": 12, "__ind_h__": 56},
-        "2:3": {"__pad_top__": 62, "__pad_bottom__": 150,
+        "3:4": {"__pad_top__": 76, "__pad_bottom__": 178,
                 "__comp_zoom__": 0.80, "__comp_margin__": 18,
                 "__icon_size__": 90, "__icon_margin__": 12,
-                "__title_size__": 67, "__title_margin__": 24,
-                "__ind_margin__": 14, "__ind_h__": 60},
+                "__title_size__": 68, "__title_margin__": 20,
+                "__ind_margin__": 14, "__ind_h__": 52,
+                "__guia_tag__": 20, "__guia_t__": 30, "__guia_s__": 26,
+                "__guia_margin__": 18},
+        "4:5": {"__pad_top__": 84, "__pad_bottom__": 196,
+                "__pad_lr__": 96,
+                "__comp_zoom__": 0.80, "__comp_margin__": 14,
+                "__icon_size__": 76, "__icon_margin__": 10,
+                "__title_size__": 62, "__title_margin__": 18,
+                "__ind_margin__": 12, "__ind_h__": 50,
+                "__guia_tag__": 20, "__guia_t__": 30, "__guia_s__": 26,
+                "__guia_margin__": 18},
+        "2:3": {"__pad_top__": 84, "__pad_bottom__": 204,
+                "__comp_zoom__": 0.80, "__comp_margin__": 16,
+                "__icon_size__": 84, "__icon_margin__": 12,
+                "__title_size__": 65, "__title_margin__": 20,
+                "__ind_margin__": 14, "__ind_h__": 56,
+                "__guia_tag__": 20, "__guia_t__": 30, "__guia_s__": 26,
+                "__guia_margin__": 18},
     }
     sc.update(ajustes.get(fmt_key, {
         "__comp_zoom__": 1.0, "__comp_margin__": 34,
@@ -987,6 +998,10 @@ def _format_scaling(fmt_key):
     sc.setdefault("__comp_base__", 40)
     sc.setdefault("__ind_h__", 72)
     sc.setdefault("__ind_disp__", "inline-flex")
+    sc.setdefault("__guia_tag__", 24)
+    sc.setdefault("__guia_t__", 36)
+    sc.setdefault("__guia_s__", 30)
+    sc.setdefault("__guia_margin__", 26)
     sc["__cover_title__"] = round(sc["__title_size__"] * _COVER_TITLE_FACTOR)
     return sc
 

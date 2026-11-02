@@ -128,3 +128,16 @@ def test_css_de_portada_va_en_mayusculas_y_usa_el_token():
     # La palabra clave no pierde su color de acento.
     assert ".slide.cover .titulo .clave" in TEMPLATE
     assert "color: var(--resalte)" in TEMPLATE
+
+
+def test_45_tiene_aire_abajo_y_funnel_mas_chico():
+    """Instagram (4:5): el contenido no debe tocar el pie."""
+    vertical = _format_scaling("9:16")
+    ig = _format_scaling("4:5")
+    assert ig["__pad_bottom__"] >= 180
+    assert ig["__pad_bottom__"] > ig["__pad_top__"]
+    assert ig["__guia_t__"] < vertical["__guia_t__"]
+    assert ig["__guia_s__"] < vertical["__guia_s__"]
+    assert ig["__guia_margin__"] < vertical["__guia_margin__"]
+    # La legibilidad de componentes no se negocia: 40 * 0.80 = 32px.
+    assert ig["__comp_base__"] * ig["__comp_zoom__"] >= 32
