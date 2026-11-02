@@ -509,11 +509,9 @@ def generar_copy_redes(carpeta: Path, display, short, marca=None, funnel=False,
 
     # ── Descripciones optimizadas para SEO y promoción de la web ────
     if dom:
-        promo = (f"Empieza en {dom}: curso de Python completo y canal de "
-                 "Telegram para resolver dudas en comunidad.")
-        if dom2:
-            promo = (f"Empieza en {dom}: curso de Python completo. "
-                     f"{txt2}: {dom2}.")
+        # La landing ya entra en linea_cta_ig (y en el comentario fijado):
+        # repetirla acá dejaba dos "Empieza en ..." seguidos.
+        promo = ""
     else:
         promo = f"Guía completa en {marca}."
 
@@ -523,9 +521,9 @@ def generar_copy_redes(carpeta: Path, display, short, marca=None, funnel=False,
         f"Si trabajas con {kw1}, guarda este post: vuelve a servirte cuando "
         f"lo necesites. {acc_tt}\n"
         f"💬 ¿Qué punto aplicas primero?\n"
-        f"{promo}\n"
-        f"{linea_cta_ig}\n"
-        f"— {marca}"
+        + (f"{promo}\n" if promo else "")
+        + f"{linea_cta_ig}\n"
+        + f"— {marca}"
     )
     if funnel:
         ig_desc += "\nGuía completa en el enlace del perfil."
