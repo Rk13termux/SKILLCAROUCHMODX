@@ -36,6 +36,7 @@ import os
 import re
 import subprocess
 import sys
+from datetime import datetime
 import time
 import zlib
 from concurrent.futures import ThreadPoolExecutor
@@ -2363,7 +2364,7 @@ __links_fuentes__
 
 
 def generar_story(input_dir: Path, display, resalte_hex, isotipo,
-                  accent_vars, marca) -> bool:
+                  accent_vars, marca, base=None) -> bool:
     fuente = input_dir / "story-fuente.html"
     if not fuente.is_file():
         print("  · story: no hay story-fuente.html (opcional, se omite)")
@@ -2419,7 +2420,7 @@ def generar_story(input_dir: Path, display, resalte_hex, isotipo,
                         if isotipo else ""),
     }.items():
         html = html.replace(k, str(v))
-    stories = input_dir / "stories"
+    stories = (base or input_dir) / "stories"
     stories.mkdir(parents=True, exist_ok=True)
     out = stories / "story-01.html"
     out.write_text(html, encoding="utf-8")
@@ -2643,6 +2644,82 @@ def correr_lote(ruta, extras=()):
     print(f"\n  ✓ Lote completo: {len(posts)} post(s) procesados.")
 
 
+def _hash_fuente(slides):
+    """Huella corta de los slides fuente, para detectar cambios entre redes."""
+    import hashlib
+    h = hashlib.sha1()
+    for p in slides:
+        try:
+            h.update(p.read_bytes())
+        except OSError:
+            pass
+    return h.hexdigest()[:16]
+
+
+def _escribir_perfil(base, args, n, indices, slides):
+    """perfil.json de la versión de una red. En modo legacy no se escribe."""
+    if not args.red_destino:
+        return
+    try:
+        p = _redes.perfil(args.red_destino)
+    except ValueError:
+        return
+    datos = {
+        "red": args.red_destino,
+        "formato": args.formato,
+        "slides": n,
+        "recorte": indices or list(range(1, n + 1)),
+        "fuente": args.tema,
+        "hash_fuente": _hash_fuente(slides),
+        "zona_segura": p.zona_segura,
+        "copy": {"palabras": [p.copy_min, p.copy_max], "hashtags": p.hashtags},
+        "generado": datetime.now().isoformat(timespec="seconds"),
+    }
+    try:
+        (base / "perfil.json").write_text(
+            json.dumps(datos, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"  OK perfil.json ({args.red_destino})")
+    except OSError as e:  # noqa: BLE001 - nunca bloquea la versión
+        print(f"  ! no se pudo escribir perfil.json: {e}")
+
+
+def _argv_para_red(argv, red, n_red, fmt_key, indices):
+    """argv del subproceso de una red: sin --redes, con formato y recorte."""
+    limpio, saltar = [], False
+    for tok in argv:
+        if saltar:
+            saltar = False
+            continue
+        if tok.startswith("--slides-") or tok in (
+                "--redes", "--slides", "--formato", "--red-destino", "--recorte"):
+            saltar = True
+            continue
+        limpio.append(tok)
+    limpio += ["--slides", str(n_red), "--formato", fmt_key,
+               "--red-destino", red,
+               "--recorte", ",".join(str(i) for i in indices)]
+    return limpio
+
+
+def _orquestar_redes(args, plan, argv):
+    """Abre un subproceso por red con el MISMO pipeline, no con lógica nueva."""
+    if not plan or args.red_destino:
+        return []
+    fallidos = []
+    for item in plan:
+        red = item["red"]
+        print(f"\n  ── Versión {red} · {item['formato']} · "
+              f"{item['n']} slides ──")
+        cmd = [sys.executable, str(SKILL_DIR / "tech_carousel.py"),
+               *_argv_para_red(argv, red, item["n"], item["formato"],
+                               item["indices"])]
+        r = subprocess.run(cmd)
+        if r.returncode != 0:
+            fallidos.append(red)
+            print(f"  ✗ la versión {red} falló (rc={r.returncode})")
+    return fallidos
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="TechEdu carousel builder")
     ap.add_argument("--tema",
@@ -2741,11 +2818,15 @@ def main(argv=None):
         ap.add_argument(f"--slides-{_red}", type=int, default=None,
                         help=f"Cantidad de slides para {_red} "
                              f"(default: el perfil recorta y avisa)")
+    # Internos: los usa el orquestador que abre un subproceso por red.
+    ap.add_argument("--red-destino", default=None, help=argparse.SUPPRESS)
+    ap.add_argument("--recorte", default=None, help=argparse.SUPPRESS)
     ap.add_argument("--lote", default=None, metavar="MANIFEST.json",
                     help="Renderiza varios posts desde un manifest JSON "
                          "(clave 'posts': lista de objetos con las mismas "
                          "claves del CLI, ej: tema, color, slides, preset)")
     args = ap.parse_args(argv)
+    lista_argv = list(argv) if argv else sys.argv[1:]
 
     if args.lote:
         return correr_lote(args.lote, extras=_extras_de(args))
@@ -2799,6 +2880,10 @@ def main(argv=None):
         input_dir = CTSLIDER / args.tema
     if not Image:
         sys.exit("PIL no está instalado: pip install pillow")
+
+    # `input_dir` es la FUENTE (slide-*.html); `base` es dónde se ESCRIBE.
+    # Sin --red-destino son la misma carpeta: la salida legacy no cambia.
+    base = (input_dir / args.red_destino) if args.red_destino else input_dir
 
     marca = (args.marca or MARCA_DEFECTO).strip() or MARCA_DEFECTO
     tema_slug = Path(args.tema).name.lower()
@@ -2885,6 +2970,17 @@ def main(argv=None):
         if not slides:
             sys.exit(f"La auto-generación no escribió ningún slide en "
                      f"{input_dir}: revisá permisos de escritura.")
+    indices_recorte = None
+    if args.recorte:
+        try:
+            indices_recorte = [int(x) for x in args.recorte.split(",") if x.strip()]
+        except ValueError:
+            sys.exit(f"--recorte inválido: {args.recorte}")
+        try:
+            slides = [slides[i - 1] for i in indices_recorte]
+        except IndexError:
+            sys.exit(f"--recorte {args.recorte}: la fuente solo tiene "
+                     f"{len(slides)} slides")
     n = len(slides)
     if n != args.slides:
         nombres = ", ".join(s.name for s in slides[:6])
@@ -2904,8 +3000,6 @@ def main(argv=None):
     else:
         hashtags = _hashtags_tema(display, marca)
 
-    slides = _slides_existentes(input_dir)
-    n = len(slides)
 
     _fonts.set_offline(args.offline)
 
@@ -2921,6 +3015,7 @@ def main(argv=None):
         if not errores_chk and not avisos_chk:
             print("  ✓ Sin problemas: props, copy, keywords y componentes OK.")
         print("\n  (--check: solo validación; no se renderizó nada)")
+        _orquestar_redes(args, plan_redes, lista_argv)
         sys.exit(1 if errores_chk else 0)
 
     # ── Fail-fast: props de componentes antes de tocar Chromium ──
@@ -2947,11 +3042,12 @@ def main(argv=None):
 
     if args.solo_story:
         isotipo = _tint_logo(hex_val)
-        generar_story(input_dir, display, resalte_hex, isotipo, accent_vars, marca)
+        generar_story(input_dir, display, resalte_hex, isotipo, accent_vars, marca,
+                  base=base)
         return
 
     isotipo = _tint_logo(hex_val)
-    final_dir = input_dir / "renders"
+    final_dir = base / "renders"
     final_dir.mkdir(parents=True, exist_ok=True)
 
     permitidos = None
@@ -2976,6 +3072,10 @@ def main(argv=None):
     usados_iconos = set()
     for i, src in enumerate(slides, 1):
         data = parse_slide(src)
+        # Con recorte, el slide fuente conserva su numeración original
+        # (3/10): la versión final se renumera 1..N de la red.
+        if indices_recorte:
+            data["number"] = f"{i}/{n}"
         slide_warnings = []
         # QA de copy: el gancho manda y el cuerpo no debe pasar de 3 líneas.
         # Los dos últimos slides (puente y CTA) los reescribe el builder.
@@ -3087,24 +3187,26 @@ def main(argv=None):
 
     if args.solo_html:
         print("\n  ✓ HTML listos (--solo-html: sin PNG, story ni copy).")
-        print(f"\n  Salida: {input_dir}")
+        print(f"\n  Salida: {base}")
+        _escribir_perfil(base, args, n, indices_recorte, slides)
+        _orquestar_redes(args, plan_redes, lista_argv)
         return
 
     print(f"\n  Renderizando ({workers} en paralelo)...")
-    preview = input_dir / "preview"
+    preview = base / "preview"
     fallidos = renderizar_paralelo(
         [final_dir / nombre for nombre in nombres_html], preview,
         fmt["w"], fmt["h"], workers=workers, reusar=args.incremental)
 
     if args.contact_sheet:
         print("\n  Armando contact sheet...")
-        generar_contact_sheet(input_dir, nombres_html, fmt)
+        generar_contact_sheet(base, nombres_html, fmt)
     if args.pdf:
         print("\n  Exportando PDF...")
-        exportar_pdf(input_dir, nombres_html, fmt)
+        exportar_pdf(base, nombres_html, fmt)
     if args.reel:
         print("\n  Exportando reel MP4...")
-        exportar_reel(input_dir, nombres_html, fmt)
+        exportar_reel(base, nombres_html, fmt)
 
     avisos_arte, resumen_arte = revisar_arte(preview, nombres_html)
     if resumen_arte:
@@ -3114,20 +3216,20 @@ def main(argv=None):
         for a in avisos_arte:
             print(f"    - {a}")
 
-    avisos_rep = qa_repeticion(input_dir, nombres_html)
+    avisos_rep = [] if args.red_destino else qa_repeticion(input_dir, nombres_html)
     if avisos_rep:
         print("\n  ! QA de repetición:")
         for a in avisos_rep:
             print(f"    - {a}")
 
-    avisos_ritmo = qa_ritmo(input_dir, nombres_html)
+    avisos_ritmo = [] if args.red_destino else qa_ritmo(input_dir, nombres_html)
     if avisos_ritmo:
         print("\n  ! QA de ritmo:")
         for a in avisos_ritmo:
             print(f"    - {a}")
 
     generar_story(input_dir, display, resalte_hex, isotipo, accent_vars, marca)
-    escribir_caption(input_dir, display, cta, hashtags, marca,
+    escribir_caption(base, display, cta, hashtags, marca,
                      modo=args.cta_modo, landing=args.landing,
                      landing2=args.landing2, landing2_texto=args.landing2_texto)
 
@@ -3141,12 +3243,15 @@ def main(argv=None):
                            landing2=args.landing2,
                            landing2_texto=args.landing2_texto)
 
-    print(f"\n  Salida: {input_dir}")
+    _escribir_perfil(base, args, n, indices_recorte, slides)
+    print(f"\n  Salida: {base}")
     if fallidos:
         print(f"\n  ✗ INCOMPLETO: {len(fallidos)} de {n} PNG(s) no se "
               f"renderizaron ({', '.join(fallidos)}).")
         print("    Vuelve a lanzar el comando: los HTML ya están correctos.")
         sys.exit(1)
+
+    _orquestar_redes(args, plan_redes, lista_argv)
 
 
 if __name__ == "__main__":

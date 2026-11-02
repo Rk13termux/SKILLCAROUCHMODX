@@ -128,3 +128,75 @@ def test_sin_redes_no_hay_plan(tmp_path, monkeypatch, capsys):
     _main(monkeypatch, "--tema", "tema-redes", "--color", "#06B6D4",
           "--slides", "6", "--check")
     assert "Perfiles de red:" not in capsys.readouterr().out
+
+
+# ── F2: carpetas por red (unidad, sin Chromium) ────────────────────
+
+def test_argv_para_red_quita_flags_y_fija_perfil():
+    argv = ["--tema", "x", "--color", "#06B6D4", "--slides", "10",
+            "--formato", "9:16", "--redes", "todas", "--slides-tiktok", "6",
+            "--workers", "2"]
+    cmd = tc._argv_para_red(argv, "tiktok", 8, "9:16", [1, 2, 4, 9, 10])
+    assert "--redes" not in cmd and "todas" not in cmd
+    assert cmd.count("--slides") == 1
+    assert cmd[cmd.index("--slides") + 1] == "8"
+    assert cmd[cmd.index("--formato") + 1] == "9:16"
+    assert cmd[cmd.index("--red-destino") + 1] == "tiktok"
+    assert cmd[cmd.index("--recorte") + 1] == "1,2,4,9,10"
+    assert "--slides-tiktok" not in cmd and "6" not in cmd
+    assert cmd[cmd.index("--workers") + 1] == "2"
+
+
+def test_orquestar_redes_abre_un_proceso_por_red(monkeypatch, capsys):
+    llamadas = []
+
+    class _R:
+        returncode = 0
+
+    def fake_run(cmd, **kw):
+        llamadas.append(cmd)
+        return _R()
+
+    monkeypatch.setattr(tc.subprocess, "run", fake_run)
+    plan = redes.planear(10, ["tiktok", "instagram", "facebook"])
+    fallidos = tc._orquestar_redes(
+        type("A", (), {"red_destino": None})(), plan,
+        ["--tema", "x", "--color", "#06B6D4", "--slides", "10"])
+    assert fallidos == []
+    assert len(llamadas) == 3
+    for cmd, item in zip(llamadas, plan):
+        assert "--red-destino" in cmd
+        assert cmd[cmd.index("--red-destino") + 1] == item["red"]
+
+
+def test_orquestar_redes_no_recursa(monkeypatch):
+    llamadas = []
+    monkeypatch.setattr(tc.subprocess, "run",
+                        lambda cmd, **kw: llamadas.append(cmd))
+    plan = redes.planear(10, ["tiktok"])
+    tc._orquestar_redes(type("A", (), {"red_destino": "tiktok"})(), plan,
+                        ["--tema", "x"])
+    assert llamadas == []
+
+
+def test_escribir_perfil(tmp_path, capsys):
+    import json
+    from types import SimpleNamespace
+    args = SimpleNamespace(red_destino="facebook", formato="4:5",
+                           tema="mi-tema")
+    slides = []
+    tc._escribir_perfil(tmp_path, args, 6, [1, 2, 5, 9, 10], slides)
+    datos = json.loads((tmp_path / "perfil.json").read_text())
+    assert datos["red"] == "facebook"
+    assert datos["formato"] == "4:5"
+    assert datos["slides"] == 6
+    assert datos["recorte"] == [1, 2, 5, 9, 10]
+    assert datos["copy"]["hashtags"] == 5
+    assert "bottom" in datos["zona_segura"]
+
+
+def test_escribir_perfil_no_op_en_legacy(tmp_path):
+    from types import SimpleNamespace
+    args = SimpleNamespace(red_destino=None, formato="9:16", tema="x")
+    tc._escribir_perfil(tmp_path, args, 8, None, [])
+    assert not (tmp_path / "perfil.json").exists()

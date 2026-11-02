@@ -234,9 +234,26 @@ ninguna carpeta nueva.
 **Lo que F1 todavía NO hace (a propósito):** no escribe en `<tema>/<red>/`. El flag
 valida el perfil y muestra el plan; la salida real es la de siempre.
 
-### F2 · Carpetas — pendiente
+### F2 · Carpetas — hecho (rama `feat/redes-perfiles`)
 
-Siguiente paso: derivar `base = input_dir / red` en los 5 puntos de escritura
-(`renders`, `preview`, `stories`, `caption.txt`, `copy-redes.md`), guardar
-`perfil.json` y aplicar el recorte con los índices que ya devuelve `seleccion()`.
+- `base = input_dir / <red>` cuando hay `--red-destino`: `renders/`, `preview/`,
+  `stories/` y `caption.txt` se escriben en la carpeta de la red. La fuente
+  (`slide-*.html`) se sigue leyendo del tema.
+- **Recorte real:** `--recorte` remapea los slides fuente elegidos por `seleccion()`
+  y **renumera** el badge (`1/8` en la versión de TikTok, no `3/10`).
+- **`perfil.json`** por red: formato, slides, recorte, hash de la fuente, zona
+  segura y presupuesto de copy.
+- **Orquestador:** un subproceso por red con el mismo CLI (`--red-destino` y
+  `--recorte` son internos). Cero lógica de render duplicada.
+- QA de repetición/ritmo se corre una sola vez sobre la fuente (no por red).
+
+**Regresión verificada:** sin `--redes`, el HTML sigue siendo **idéntico byte a byte**
+al commit anterior (diff de los 10 `renders/*.html` → 0 líneas) y no se crea ninguna
+carpeta nueva. `pytest`: 187 passed.
+
+### F3 · Copy por red — pendiente
+
+`caption.txt` ya se escribe por red; falta el `copy-redes.md` propio (con UTM por red)
+y que el QA de palabras valide el presupuesto de cada perfil.
+
 

@@ -114,6 +114,8 @@ python3 ~/.config/opencode/skills/tech-carousel/tech_carousel.py \
 | `--no-auto` | no | No escribir copy si falta la carpeta: falla explicando qué hacer |
 | `--check` | no | **Preflight sin render**: valida props, límites de copy (hook ≤8 palabras, cuerpo ≤45), keywords por título y componentes fuera de la lista, y sale (segundos). Ideal para iterar el guion |
 | `--lote` | no | `MANIFEST.json` con `{"posts":[{…}]}`: renderiza varios posts en serie. Cada post usa las mismas claves del CLI (`tema`, `color`, `slides`, `preset`, `landing`…) o `args` con argv explícito |
+| `--redes` | no | `todas` o lista (`tiktok,instagram,facebook`): genera una versión por red en `$CTSLIDER/<tema>/<red>/`. La salida de la raíz no cambia |
+| `--slides-<red>` | no | fuerza la cantidad de slides de esa red (default: el perfil recorta y avisa cuáles quedan afuera) |
 
 **1 comando = copy + HTML + PNG + verificación.** Si la carpeta fuente no existe, el mismo comando la crea con el copy de los `N` slides (y `story-fuente.html`) y sigue. Usá `--no-auto` cuando quieras controlar vos los slides fuente.
 
@@ -450,6 +452,9 @@ python3 ~/.config/opencode/skills/tech-carousel/tech_carousel.py \
 ```
 
 Salidas en la carpeta del tema: `renders/` (HTML), `preview/` (PNG), `stories/`, `caption.txt`.
+Con `--redes`, además: `<tema>/tiktok/`, `<tema>/instagram/` y `<tema>/facebook/`, cada una con
+su `renders/`, `preview/`, `stories/`, `caption.txt` y un `perfil.json` (formato, slides,
+recorte y zona segura). La salida de la raíz se sigue generando igual.
 - Renderiza **en paralelo** (varios Chromium a la vez; `--workers` para fijarlo). Ajustá el conteo si la máquina se queda sin memoria.
 - Mide títulos en Chromium (`Range.getClientRects()`) para la regla de keywords: 1 línea → 1 `.clave`, 2-3 líneas → 2. Repite hasta 3 pasadas. **La puntuación queda fuera del span** («…una fuga?» → `<span class="clave">fuga</span>?`, no `fuga?`).
 - Mide también la **portada**: `ajustar_titulo_portada()` barre tamaños de título en Chromium y deja el mayor que entra sin recortar (resetea el zoom del contenido). Se corre **después** de la regla de keywords, porque las `.clave` (1.15em) agrandan el título; luego recalcula la regla solo para `slide-01.html`.
