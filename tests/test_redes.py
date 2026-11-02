@@ -200,3 +200,48 @@ def test_escribir_perfil_no_op_en_legacy(tmp_path):
     args = SimpleNamespace(red_destino=None, formato="9:16", tema="x")
     tc._escribir_perfil(tmp_path, args, 8, None, [])
     assert not (tmp_path / "perfil.json").exists()
+
+
+# ── F3: copy por red ──────────────────────────────────────────────
+
+def test_presupuestos_coinciden_con_los_perfiles():
+    from generar_copy_tech import PRESUPUESTO
+    nombre = {"instagram": "Instagram", "tiktok": "TikTok",
+              "facebook": "Facebook"}
+    for red, p in redes.PERFILES.items():
+        assert PRESUPUESTO[nombre[red]] == (p.copy_min, p.copy_max)
+
+
+def test_copy_por_red_escribe_caption_y_copy(tmp_path):
+    from generar_copy_tech import generar_copy_redes
+    for red in ("instagram", "tiktok", "facebook"):
+        p = redes.perfil(red)
+        r = generar_copy_redes(
+            tmp_path, "IDOR en APIs REST", "IDOR", "CHMODX",
+            vertical="cybersec", landing="https://chmodxcode.pro",
+            solo=red, destino=tmp_path / red)
+        assert (tmp_path / red / "caption.txt").is_file()
+        assert (tmp_path / red / "copy.md").is_file()
+        assert p.copy_min <= r["palabras"] <= p.copy_max, (red, r["palabras"])
+        md = (tmp_path / red / "copy.md").read_text(encoding="utf-8")
+        assert f"utm_source={red}" in md
+        tags = (tmp_path / red / "caption.txt").read_text().count("#")
+        assert tags >= p.hashtags
+
+
+def test_copy_red_desconocida_falla(tmp_path):
+    from generar_copy_tech import generar_copy_redes
+    with pytest.raises(ValueError):
+        generar_copy_redes(tmp_path, "X", "X", "CHMODX", solo="myspace")
+
+
+def test_copy_red_usa_el_slug_real_no_el_de_la_carpeta(tmp_path):
+    """La carpeta de destino es `tiktok/`: el slug debe seguir siendo el tema."""
+    from generar_copy_tech import generar_copy_redes
+    generar_copy_redes(tmp_path, "IDOR en APIs REST", "IDOR", "CHMODX",
+                       vertical="cybersec", solo="tiktok",
+                       destino=tmp_path / "tiktok", slug="idor-apis-rest")
+    md = (tmp_path / "tiktok" / "copy.md").read_text(encoding="utf-8")
+    assert "`idor-apis-rest`" in md
+    caption = (tmp_path / "tiktok" / "caption.txt").read_text()
+    assert "#tiktok" not in caption

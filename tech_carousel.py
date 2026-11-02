@@ -3229,11 +3229,20 @@ def main(argv=None):
             print(f"    - {a}")
 
     generar_story(input_dir, display, resalte_hex, isotipo, accent_vars, marca)
-    escribir_caption(base, display, cta, hashtags, marca,
-                     modo=args.cta_modo, landing=args.landing,
-                     landing2=args.landing2, landing2_texto=args.landing2_texto)
+    if args.red_destino:
+        # Cada red se lleva su caption con SU presupuesto y SU UTM.
+        from generar_copy_tech import generar_copy_redes as _gcr
+        _gcr(base, display, short, marca, cta_palabra=cta, repo=args.repo,
+             vertical=cat, cta_modo=args.cta_modo, landing=args.landing,
+             landing2=args.landing2, landing2_texto=args.landing2_texto,
+             solo=args.red_destino, destino=base, slug=tema_slug)
+    else:
+        escribir_caption(base, display, cta, hashtags, marca,
+                         modo=args.cta_modo, landing=args.landing,
+                         landing2=args.landing2,
+                         landing2_texto=args.landing2_texto)
 
-    if args.copy_redes:
+    if args.copy_redes and not args.red_destino:
         from generar_copy_tech import generar_copy_redes
         print("\n  Generando copy-redes.md...")
         generar_copy_redes(input_dir, display, short, marca, cta_palabra=cta,

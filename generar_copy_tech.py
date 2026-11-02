@@ -401,14 +401,14 @@ def extraer_comandos(carpeta, tope=12):
 
 def _primer_comentario(short, cta, comandos, repo, marca,
                        cierre=None, landing=None, landing2=None,
-                       landing2_texto=None, campana=""):
+                       landing2_texto=None, campana="", red="instagram"):
     lineas = []
     if landing:
-        lineas.append(f"🚀 Primero: {_con_utm(landing, 'instagram', campana)}")
+        lineas.append(f"🚀 Primero: {_con_utm(landing, red, campana)}")
         linea2 = ""
         if landing2:
             txt2 = (landing2_texto or "Telegram").strip()
-            linea2 = f" · {txt2}: {_con_utm(landing2, 'instagram', campana)}"
+            linea2 = f" · {txt2}: {_con_utm(landing2, red, campana)}"
         lineas += [
             "Curso de Python completo + canal de Telegram para resolver "
             "dudas en comunidad." + linea2,
@@ -435,8 +435,9 @@ def _primer_comentario(short, cta, comandos, repo, marca,
 
 def generar_copy_redes(carpeta: Path, display, short, marca=None, funnel=False,
                        cta_palabra=None, repo=None, vertical="tech", cta_modo="seguir",
-                       landing=None, landing2=None, landing2_texto=None):
-    slug = carpeta.name
+                       landing=None, landing2=None, landing2_texto=None,
+                       solo=None, destino=None, slug=None):
+    slug = slug or carpeta.name
     cta = resolver_cta_palabra(slug, forzado=cta_palabra)
     marca = (marca or MARCA_DEFECTO).strip() or MARCA_DEFECTO
     dom = _landing_dominio(landing) if landing else ""
@@ -558,6 +559,72 @@ def generar_copy_redes(carpeta: Path, display, short, marca=None, funnel=False,
         ("TikTok", tt_desc, PRESUPUESTO["TikTok"]),
         ("Facebook", fb_desc, PRESUPUESTO["Facebook"]),
     ]
+
+    # ── Modo una sola red: caption.txt + copy.md de esa red ─────────
+    # Lo usa el builder cuando corre --redes: cada carpeta se lleva su
+    # copy con su presupuesto de palabras y su UTM.
+    if solo:
+        mapa = {
+            "instagram": ("Instagram", ig_desc, ig_titulo,
+                          _tags(9, kws, vertical, slug)),
+            "tiktok": ("TikTok", tt_desc, tt_titulo,
+                       _tags(5, kws, vertical, slug)),
+            "facebook": ("Facebook", fb_desc, fb_titulo,
+                         _tags(5, kws, vertical, slug)),
+        }
+        if solo not in mapa:
+            raise ValueError(f"red sin copy propio: {solo}")
+        nombre, desc, titulo, tags = mapa[solo]
+        minimo, maximo = PRESUPUESTO[nombre]
+        palabras = contar_palabras(desc)
+        estado = "OK" if minimo <= palabras <= maximo else "FUERA DE RANGO"
+        salida = Path(destino) if destino else carpeta
+        salida.mkdir(parents=True, exist_ok=True)
+        (salida / "caption.txt").write_text(f"{desc}\n\n{tags}\n",
+                                            encoding="utf-8")
+        comentario = _primer_comentario(
+            short, cta, comandos, repo, marca, cierre=cierre_comentario,
+            landing=landing, landing2=landing2,
+            landing2_texto=landing2_texto, campana=slug, red=solo)
+        utm = _con_utm(landing, solo, slug) if landing else ""
+        lineas = [
+            f"# Copy {nombre} — {display}",
+            "",
+            f"- Slug: `{slug}`",
+            f"- Palabra CTA: **{cta}**",
+            f"- Hashtags: {tags}",
+            "",
+            "## QA",
+            "",
+            f"- Palabras: {palabras} (esperado {minimo}-{maximo}) → {estado}",
+            f"- Voseo: {1 if voseo_presente(desc) else 0}",
+            f"- Regionalismos: {len(regionalismos_presentes(desc))}",
+            "- Contenido responsable: "
+            + ("OK" if not contenido_responsable(desc) else "REVISAR"),
+            "",
+            "## Título",
+            "",
+            titulo,
+            "",
+            "## Caption (listo para pegar)",
+            "",
+            desc,
+            "",
+            "## Hashtags",
+            "",
+            tags,
+            "",
+            "## Primer comentario (fíjalo)",
+            "",
+            comentario,
+        ]
+        if utm:
+            lineas += ["", f"## Enlace con UTM ({nombre})", "", utm]
+        (salida / "copy.md").write_text("\n".join(lineas) + "\n",
+                                        encoding="utf-8")
+        print(f"  OK copy.md + caption.txt ({solo})")
+        return {"red": solo, "palabras": palabras,
+                "ok": estado == "OK", "hashtags": tags}
 
     filas = []
     problemas = []

@@ -251,9 +251,25 @@ valida el perfil y muestra el plan; la salida real es la de siempre.
 al commit anterior (diff de los 10 `renders/*.html` → 0 líneas) y no se crea ninguna
 carpeta nueva. `pytest`: 187 passed.
 
-### F3 · Copy por red — pendiente
+### F3 · Copy por red — hecho (rama `feat/redes-perfiles`)
 
-`caption.txt` ya se escribe por red; falta el `copy-redes.md` propio (con UTM por red)
-y que el QA de palabras valide el presupuesto de cada perfil.
+- Cada red escribe su **`caption.txt`** con el texto de su plataforma (Instagram
+  60-95 · TikTok 30-50 · Facebook 60-110) y **`copy.md`** con título, hashtags,
+  primer comentario y el enlace con `utm_source=<red>`.
+- `_primer_comentario()` ahora acepta `red=`, así el UTM del comentario fijado
+  apunta a la red correcta (antes iba siempre a `instagram`).
+- **Bug corregido:** la carpeta destino se llamaba `tiktok/`, así que
+  `slug = carpeta.name` metía `#tiktok` en los hashtags y `utm_campaign=tiktok`.
+  Ahora `generar_copy_redes(..., slug=tema_slug)` usa el slug real del tema.
+- QA por red en el propio `copy.md` (palabras vs presupuesto, voseo, regionalismos,
+  contenido responsable).
+- `--copy-redes` sigue generando el `copy-redes.md` comparativo **solo en la raíz**;
+  las carpetas de red ya traen su copy siempre.
+
+**Verificación:** presupuestos 82 / 37 / 78 palabras (IG / TT / FB), hashtags
+9 / 5 / 5, UTM distinto por red. `pytest`: 191 passed.
+
+### F4 · Agentes — pendiente
+
 
 

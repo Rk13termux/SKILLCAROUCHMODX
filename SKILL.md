@@ -484,6 +484,10 @@ python3 ~/.config/opencode/skills/tech-carousel/generar_copy_tech.py --carpeta <
 
 Genera copy por plataforma (Instagram 60-95 palabras, TikTok 30-50, Facebook 60-110, Story ≤8 palabras en mayúsculas) con QA de presupuesto de palabras, dialecto neutro y hashtags exactos (IG 9, TT 5, FB 5).
 
+Con `--redes`, cada carpeta de red recibe su **`caption.txt`** (solo su plataforma, con su
+presupuesto) y un **`copy.md`** con título, hashtags, primer comentario y el enlace con
+`utm_source=<red>`. El `copy-redes.md` comparativo sigue viviendo en la raíz.
+
 Con `--landing` (y `--landing2`) agrega una sección **🔗 Enlaces con UTM** lista para pegar en bio/story/comentario: el mismo dominio con `?utm_source=instagram|tiktok|facebook&utm_medium=carrusel&utm_campaign=<slug>`, para medir de qué red llega el tráfico.
 
 Incluye además un **📅 Plan de publicación sugerido** (días y franjas por red, republicación de story y repost de portada como reel) que podés ajustar según la analítica de tu cuenta.
