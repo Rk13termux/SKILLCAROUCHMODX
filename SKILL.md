@@ -383,6 +383,18 @@ python3 comparar_fondos.py --verticales       # 1 fila por vertical (auto)
 python3 comparar_fondos.py --solo grid codigo --accent "#06B6D4"
 ```
 
+## Agentes (`~/.config/opencode/agents/`)
+
+| Agente | Para qué | Permisos |
+|---|---|---|
+| `carousel-logic` | Cartografía la skill: dónde se decide cada cosa, con `archivo:línea` y dependencias. Se usa antes de tocar código. | shell sí · edit no |
+| `carousel-auditor` | Corre `--check`, `pytest`, render, QA de ritmo/repetición, arte y contraste en la raíz y en las 3 redes. Devuelve bloqueantes vs avisos. | shell sí · edit no |
+| `carousel-copy` | Adapta el copy por red (30-50 / 60-95 / 60-110), valida hashtags y dialecto, escribe `caption.txt` y `copy.md`. | shell sí · edit sí |
+| `icon-smith` | Crea y audita iconos del tema (ver arriba). | shell sí · edit sí |
+
+Flujo sugerido: `carousel-logic` (ubicar) → builder con `--redes` → `carousel-auditor`
+(¿publicable?) → `carousel-copy` (texto final) → publicar.
+
 ## Pipeline (6 pasos)
 
 ### 1. Copywriting (AUTOMÁTICO si faltan archivos)

@@ -245,3 +245,12 @@ def test_copy_red_usa_el_slug_real_no_el_de_la_carpeta(tmp_path):
     assert "`idor-apis-rest`" in md
     caption = (tmp_path / "tiktok" / "caption.txt").read_text()
     assert "#tiktok" not in caption
+
+
+def test_avisa_que_formato_se_ignora_con_redes(tmp_path, monkeypatch, capsys):
+    _tema(tmp_path, 6)
+    monkeypatch.setattr(tc, "CTSLIDER", tmp_path)
+    _main(monkeypatch, "--tema", "tema-redes", "--color", "#06B6D4",
+          "--slides", "6", "--formato", "1:1", "--redes", "todas", "--check")
+    salida = capsys.readouterr().out
+    assert "--formato se ignora con --redes" in salida

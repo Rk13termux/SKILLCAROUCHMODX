@@ -269,7 +269,29 @@ carpeta nueva. `pytest`: 187 passed.
 **Verificación:** presupuestos 82 / 37 / 78 palabras (IG / TT / FB), hashtags
 9 / 5 / 5, UTM distinto por red. `pytest`: 191 passed.
 
-### F4 · Agentes — pendiente
+### F4 · Agentes — hecho
+
+| Agente | Archivo | Permisos |
+|---|---|---|
+| `carousel-logic` | `~/.config/opencode/agents/carousel-logic.md` | shell sí · edit **no** |
+| `carousel-auditor` | `~/.config/opencode/agents/carousel-auditor.md` | shell sí · edit **no** |
+| `carousel-copy` | `~/.config/opencode/agents/carousel-copy.md` | shell sí · edit sí |
+
+- `carousel-logic` devuelve `archivo:línea` y la cadena de dependencias; no edita
+  para no "arreglar" mientras mapea.
+- `carousel-auditor` tiene criterios explícitos de **bloqueante vs aviso** y un
+  formato de informe fijo (veredicto + tabla por red + comandos corridos).
+- `carousel-copy` genera la base con `generar_copy_redes(solo=, destino=, slug=)`,
+  la ajusta a mano y revalida el presupuesto de palabras con `redes.PERFILES`.
+
+**Prueba de aceptación:** se creó `_qa-overflow` con un slide de ~1.100 caracteres
+y el pipeline emite el bloqueante que el auditor debe reportar:
+`! slide-03.html: sigue recortando 34px (piso de zoom alcanzado)`.
+
+**Hueco cerrado por `carousel-logic`:** con `--redes`, `--formato` se ignoraba en
+silencio (el perfil siempre gana). Ahora avisa:
+`! --formato se ignora con --redes: cada perfil fija el suyo`. Test nuevo.
+
 
 
 

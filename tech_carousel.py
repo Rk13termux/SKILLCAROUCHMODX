@@ -2864,6 +2864,9 @@ def main(argv=None):
         forzados = {r: getattr(args, f"slides_{r}", None) for r in redes_sel}
         forzados = {k: v for k, v in forzados.items() if v}
         plan_redes = _redes.planear(args.slides, redes_sel, forzados)
+        if "--formato" in lista_argv:
+            print("  ! --formato se ignora con --redes: cada perfil fija el "
+                  "suyo (9:16 TikTok, 4:5 Instagram y Facebook).")
         print("  Perfiles de red:")
         for item in plan_redes:
             print(f"    · {item['red']}: {item['n']} slides en "
