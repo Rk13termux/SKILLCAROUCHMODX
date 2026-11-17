@@ -1,6 +1,6 @@
 ---
 name: tech-carousel
-description: Use when the user asks to create professional Instagram carousel slides for tech education (cybersecurity, programming, AI, infra) with tech_carousel.py in this skill folder — requires HEX accent color and slide count. Writes copy + HTML + PNG into the CTSLIDER work folder (/sdcard/CTSLIDER, override with CTSLIDER_DIR). 23 components: terminal, cards, compare, repo, diagrams, code, editor, tree, http, diff, stats, layers, pipeline, tabla, faq, quote, quiz and more. 235 professional icons (Lucide + hand-drawn) picked semantically from the slide text; icon_smith.py and the icon-smith agent add icons per topic.
+description: Use when the user asks to create professional Instagram carousel slides for tech education (cybersecurity, programming, AI, infra) with tech_carousel.py in this skill folder — requires HEX accent color and slide count. Writes copy + HTML + PNG into the CTSLIDER work folder (/sdcard/CTSLIDER, override with CTSLIDER_DIR). 32 components: terminal, cards, compare, repo, diagrams, code, editor, tree, http, diff, stats, layers, pipeline, tabla, faq, quote, quiz and more. 339 professional icons (Lucide + hand-drawn) picked semantically from the slide text; icon_smith.py and the icon-smith agent add icons per topic.
 ---
 
 # Crear Carousel Tech (Ciberseguridad · Programación · IA)
@@ -92,7 +92,8 @@ python3 ~/.config/opencode/skills/tech-carousel/tech_carousel.py \
 | `--marca` | no | Marca del pie (default `CHMODX`) |
 | `--badge` | no | Texto del badge de portada |
 | `--cta-palabra` | no | Palabra del CTA (default: determinista desde el slug) |
-| `--cta-modo` | no | `seguir` (default: botón negro con borde de acento "SÍGUENOS Y NO TE PIERDAS LO QUE SIGUE" + copy de valor) o `comentar` (botón 'Comenta X') |
+| `--cta-modo` | no | `seguir` (default: botón negro con borde de acento "SÍGUENOS Y NO TE PIERDAS LO QUE SIGUE" + copy de valor), `comentar` (botón 'Comenta X') o `guardar` (botón "GUARDA Y COMPARTE ESTE POST", ideal para posts de referencia) |
+| `--cta-secundario` | no | Línea secundaria del slide final. Si falta, se usa el texto por defecto del `--cta-modo`; la marca se agrega al final |
 | `--repo` | no | URL del repo (va al primer comentario de copy-redes) |
 | `--landing` | no | URL propia (ej `https://chmodxcode.pro`). Activa el **cierre con landing**: slide N-1 empuja a programar + mini-card del dominio, slide N muestra el dominio gigante como CTA primario (los comandos siguen presentes, en línea secundaria hacia el primer comentario), y caption/copy-redes/primer comentario arrancan con el enlace |
 | `--landing2` / `--landing2-texto` | no | Segunda URL del cierre (ej canal de Telegram). Agrega un **botón secundario** (borde punteado) en el slide final y una línea extra en caption/copy/primer comentario |
@@ -138,7 +139,7 @@ Usá **`tech-carousel`** si el tema es técnico. Usá **`crear-carousel`** si es
 1. **Slide 1 (Portada/Hook):** título MÁXIMO 8 palabras (tensión técnica legítima, no engañosa) + subtítulo MÁXIMO 2 líneas + **1 componente gancho** (terminal con evidencia por default, desde `HOOK_COMPS` de cada vertical en `copywriting/`). La portada es el slide más importante: es lo que frena el scroll y decide si guardan el post. El builder conserva el componente tras el subtítulo (ver `generar_html()` rama `i == 1`). **El título de portada va en MAYÚSCULAS y se mide para quedar lo más grande posible**: parte de `__cover_title__` (`__title_size__` × 1.47) y después `ajustar_titulo_portada()` barre candidatos en Chromium (de 2.2× a 1.0×) y deja el mayor que entra sin recortar (con las `.clave` ya puestas, que van a 1.15em). Las `.clave` conservan su color `--resalte` y ganan glow propio.
 2. **Slides 2..N-2 (Contenido de valor):** MÁXIMO 3 líneas de texto por slide (40-50 palabras), 1 idea clara. Usá `.clave` en 1-2 keywords. Concepto largo → dividiólo en 2 slides.
 3. **Slide N-1 (Puente-recap):** el script arma "Antes del final: el resumen" con checklist de las 3 ideas clave extraídas del propio carrusel (títulos de inicio/medio/cierre, 7 palabras máx). Sin títulos suficientes, usa una frase puente del banco `PUENTES`. Con `--landing`, el título pasa a "Ver no es hacer: empieza a programar hoy" y se agrega una mini-card con el dominio (curso + Telegram). No generar copy manual.
-4. **Slide N (CTA final):** el script inyecta "¿Listo para aplicarlo?", terminal con TODOS los comandos del carrusel, card gigante "COPIA LOS COMANDOS DEL PRIMER COMENTARIO", botón CTA y línea de cierre. `--cta-modo comentar` (default): botón "Comenta [PALABRA] y te paso la checklist completa". `--cta-modo seguir`: botón "SÍGUENOS Y NO TE PIERDAS LO QUE SIGUE" + "Guarda este carrusel: lo vas a necesitar · El próximo tema lo eligen los seguidores" (gatillos de pérdida + pertenencia). Con `--landing` se reemplaza ese bloque: título "De mirar a programar", terminal (máx 6 comandos), card gigante con el dominio + "Curso de Python completo y canal de Telegram" + botón "EMPIEZA EN [DOMINIO]" (sin flecha), y línea fina "Todos los comandos completos están en el primer comentario". NO generar copy manual.
+4. **Slide N (CTA final):** el script inyecta "¿Listo para aplicarlo?", terminal con TODOS los comandos del carrusel, card gigante "COPIA LOS COMANDOS DEL PRIMER COMENTARIO", botón CTA y línea de cierre. `--cta-modo seguir` (default): botón "SÍGUENOS Y NO TE PIERDAS LO QUE SIGUE" + "Guarda este carrusel: lo vas a necesitar · El próximo tema lo eligen los seguidores" (gatillos de pérdida + pertenencia). `--cta-modo comentar`: botón "Comenta [PALABRA] y te paso la checklist completa". `--cta-modo guardar`: botón "GUARDA Y COMPARTE ESTE POST" + "Los comandos completos están en el primer comentario". `--cta-secundario "<texto>"` reemplaza esa línea de cierre en cualquiera de los tres modos (la marca se agrega sola). Con `--landing` se reemplaza ese bloque: título "De mirar a programar", terminal (máx 6 comandos), card gigante con el dominio + "Curso de Python completo y canal de Telegram" + botón "EMPIEZA EN [DOMINIO]" (sin flecha), y línea fina "Todos los comandos completos están en el primer comentario". NO generar copy manual.
 
 Reglas de copy:
 - Hooks: curiosidad técnica legítima ("Tu config por defecto no es segura"), nunca clickbait falso ("esto te va a asustar").
@@ -256,7 +257,7 @@ Forzar: --componentes [set de la matriz] (opcional).
 
 ## Sets de íconos (por tema + rol)
 
-**235 glyphs** en 8 categorías. La librería combina **Lucide** (line-art 24×24, ISC,
+**339 glyphs** en 9 categorías. La librería combina **Lucide** (line-art 24×24, ISC,
 normalizado al estilo de la casa) con el **trazo a mano** original, que gana si
 comparten nombre. El color sale del acento del carrusel (gradiente `url(#c)`).
 
@@ -552,7 +553,7 @@ Nunca edites los PNG ni los HTML de `renders/`. Corregí el **slide fuente** y v
 
 ## Notas de producción
 
-- **Entorno instalado (este equipo):** skill en `~/.config/opencode/skills/tech-carousel/` · carpeta de trabajo `/sdcard/CTSLIDER` · Pillow 12.3 (`pip3 --user`) · Chromium headless de Playwright (`chrome-headless-shell` aarch64 en `~/.cache/ms-playwright`, resuelto solo por `utils/render.py`) · `python3 -m pytest tests/` → 78 passed.
+- **Entorno instalado (este equipo):** skill en `~/.config/opencode/skills/tech-carousel/` · carpeta de trabajo `/sdcard/CTSLIDER` · Pillow 12.3 (`pip3 --user`) · Chromium headless de Playwright (`chrome-headless-shell` aarch64 en `~/.cache/ms-playwright`, resuelto solo por `utils/render.py`) · `python3 -m pytest tests/` → 196 passed.
 - **1 comando:** `tech_carousel.py` escribe el copy si falta, renderiza y verifica. `--copy-redes` agrega `copy-redes.md`; `--offline` evita Google Fonts; `--no-auto` exige slides hechos a mano.
 - Copywriting también suelto con `generar_copy_tech.py` (paso 1 del pipeline).
 - Ejemplos funcionales por vertical (fuentes + comando exacto) en `examples/`: `cybersec-sql-injection/`, `prog-python-testing/`, `ai-prompts/`.

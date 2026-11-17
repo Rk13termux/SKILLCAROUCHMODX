@@ -449,7 +449,7 @@ def generar_copy_redes(carpeta: Path, display, short, marca=None, funnel=False,
     kw2 = (kws[1] if len(kws) > 1 else "guía práctica").capitalize()
     kw3 = kws[2] if len(kws) > 2 else "paso a paso"
     comandos = extraer_comandos(carpeta)
-    seguir = (cta_modo or "comentar") == "seguir"
+    seguir = (cta_modo or "comentar") in ("seguir", "guardar")
     if seguir:
         linea_cta_ig = ("Síguenos para no perderte la próxima guía: cada "
                         "semana un tema así, sin humo.")

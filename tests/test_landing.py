@@ -16,7 +16,8 @@ COMANDOS = ["python3 --version", "pip install requests", "git clone repo"]
 ACCENT = _colors.acento_vars("#06B6D4")
 
 
-def _slide(i, n, landing=None, body=""):
+def _slide(i, n, landing=None, body="", cta_modo="seguir",
+           cta_secundario=None):
     data = {"number": f"{i}/{n}",
             "body": body or ('<div class="titulo">Titular <span '
                              'class="clave">clave</span></div>'
@@ -24,7 +25,8 @@ def _slide(i, n, landing=None, body=""):
             "footer": "CHMODX · demo"}
     return generar_html(i, n, data, "9:16", FORMATOS["9:16"], ACCENT, None,
                         "CHMODX", resalte_vars=KW, semilla="demo",
-                        comandos_finales=COMANDOS, cta_modo="seguir",
+                        comandos_finales=COMANDOS, cta_modo=cta_modo,
+                        cta_secundario=cta_secundario,
                         recap_titulos=["Instala Python hoy",
                                        "Escribe tu primera función",
                                        "Publica tu proyecto"], landing=landing)
@@ -89,3 +91,27 @@ def test_puente_sin_landing_usa_el_titulo_de_recap():
     html = _slide(6, 7)
     assert 'class="landing-mini"' not in html
     assert "Antes del final: el resumen" in html
+
+
+# ── Modos de CTA (seguir / comentar / guardar) ─────────────────────
+
+def test_cta_guardar_cambia_boton_y_linea_de_cierre():
+    html = _slide(7, 7, cta_modo="guardar")
+    assert "GUARDA" in html
+    assert "COMPARTE ESTE POST" in html
+    assert "Los comandos completos están en el primer comentario" in html
+    assert "SÍGUENOS" not in html
+
+
+def test_cta_secundario_personaliza_la_linea_de_cierre():
+    html = _slide(7, 7, cta_modo="guardar",
+                  cta_secundario="Comenta CÓDIGO y te paso la guía")
+    assert "Comenta CÓDIGO y te paso la guía" in html
+    assert "Los comandos completos están en el primer comentario" not in html
+    assert "· CHMODX" in html
+
+
+def test_cta_comentar_conserva_el_boton_de_palabra():
+    html = _slide(7, 7, cta_modo="comentar")
+    assert "y te paso la checklist completa" in html
+    assert "SÍGUENOS" not in html

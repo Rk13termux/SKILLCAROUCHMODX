@@ -1120,7 +1120,7 @@ def _micro_indicador(i, n, semilla, modo="comentar"):
     if i == 1:
         return f"{n} ideas, una por slide"
     if i == n - 1:
-        if (modo or "comentar") == "seguir":
+        if (modo or "comentar") in ("seguir", "guardar"):
             return "El cierre está en el último slide"
         return "La palabra está en la última"
     return INDICADORES_SWIPE[(i - 2) % len(INDICADORES_SWIPE)]
@@ -1662,6 +1662,7 @@ def generar_html(i, n, data, fmt_key, fmt, accent_vars, isotipo, marca,
                   resalte_vars=None, semilla="", warnings=None,
                   guia=True, guia_tag=None, guia_titulo=None, guia_sub=None,
                   comandos_finales=None, cta_modo="seguir", recap_titulos=None,
+                  cta_secundario=None,
                   landing=None, landing2=None, landing2_texto=None,
                   plano=False, categoria=None, fondo="auto", fondo_fijo=False,
                   cta_card=None, cta_sin_terminal=False):
@@ -1749,19 +1750,26 @@ def generar_html(i, n, data, fmt_key, fmt, accent_vars, isotipo, marca,
         cls = "final-cta"
         reemplaza = True
         palabra = cta_palabra or "CLAVE"
+        linea_sec = (cta_secundario or "").strip()
         if (cta_modo or "comentar") == "seguir":
             boton_cta = ('<div class="cta-seguir"><span class="verbo">SÍGUENOS'
                          '</span> Y NO TE PIERDAS LO QUE SIGUE</div>')
-            secundario = (f'<div class="secundario">Guarda este carrusel: lo '
-                          f'vas a necesitar · El próximo tema lo eligen los '
-                          f'seguidores · {marca}</div>')
+            secundario = (
+                f'<div class="secundario">{linea_sec or "Guarda este carrusel: lo vas a necesitar · El próximo tema lo eligen los seguidores"}'
+                f' · {marca}</div>')
+        elif (cta_modo or "comentar") == "guardar":
+            boton_cta = ('<div class="cta-seguir"><span class="verbo">GUARDA'
+                         '</span> Y COMPARTE ESTE POST</div>')
+            secundario = (
+                f'<div class="secundario">{linea_sec or "Los comandos completos están en el primer comentario"}'
+                f' · {marca}</div>')
         else:
             boton_cta = (
                 f'<div class="cta">Comenta <span class="clave">{palabra}</span> '
                 'y te paso la checklist completa</div>')
             secundario = (
-                f'<div class="secundario">Guarda este carrusel o pásaselo a tu '
-                f'equipo técnico · {marca}</div>')
+                f'<div class="secundario">{linea_sec or "Guarda este carrusel o pásaselo a tu equipo técnico"}'
+                f' · {marca}</div>')
         terminal_html = ""
         if comandos_finales and not cta_sin_terminal:
             tope_term = 6 if landing else 12
@@ -2579,6 +2587,7 @@ _CLAVES_LOTE = {
     "display_tema": "--display-tema", "short_tema": "--short-tema",
     "badge": "--badge", "cta_palabra": "--cta-palabra",
     "cta_modo": "--cta-modo", "cta_card": "--cta-card",
+    "cta_secundario": "--cta-secundario",
     "hashtags": "--hashtags",
     "resalte": "--resalte", "workers": "--workers", "repo": "--repo",
     "guia_titulo": "--guia-titulo", "guia_sub": "--guia-sub",
@@ -2782,9 +2791,13 @@ def main(argv=None):
     ap.add_argument("--badge", default=None)
     ap.add_argument("--cta-palabra", default=None)
     ap.add_argument("--cta-modo", default="seguir",
-                    choices=["comentar", "seguir"],
+                    choices=["comentar", "seguir", "guardar"],
                     help="comentar: botón 'Comenta X'; seguir: botón "
-                         "'SÍGUENOS' con gatillo de valor")
+                         "'SÍGUENOS' con gatillo de valor; guardar: botón "
+                         "'GUARDA Y COMPARTE ESTE POST'")
+    ap.add_argument("--cta-secundario", default=None,
+                    help="Línea secundaria del slide final (default según "
+                         "--cta-modo). La marca se agrega al final.")
     ap.add_argument("--cta-card", default=None,
                     help="Reemplaza la tarjeta grande del cierre (usa "
                          "*palabra* para resaltarla en acento)")
@@ -3136,6 +3149,7 @@ def main(argv=None):
                             guia_sub=args.guia_sub,
                             comandos_finales=comandos_finales,
                             cta_modo=args.cta_modo,
+                            cta_secundario=args.cta_secundario,
                             cta_card=args.cta_card,
                             cta_sin_terminal=args.cta_sin_terminal,
                             recap_titulos=recap_titulos,
@@ -3246,7 +3260,8 @@ def main(argv=None):
         for a in avisos_ritmo:
             print(f"    - {a}")
 
-    generar_story(input_dir, display, resalte_hex, isotipo, accent_vars, marca)
+    generar_story(input_dir, display, resalte_hex, isotipo, accent_vars, marca,
+                  base=base)
     if args.red_destino:
         # Cada red se lleva su caption con SU presupuesto y SU UTM.
         from generar_copy_tech import generar_copy_redes as _gcr
