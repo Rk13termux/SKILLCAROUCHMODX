@@ -78,10 +78,19 @@ def test_keywords_declaradas_apuntan_a_glyphs_instalados():
     assert not faltan, f"reglas sin glyph: {faltan[:8]}"
 
 
-def test_overlays_locales_por_defecto():
+def test_overlays_locales_se_fusionan_sin_romper_la_libreria():
+    # `icon_smith.py` escribe en estos overlays: pueden estar vacíos o no.
+    # Lo importante es que todo glyph local sea válido y quede instalado.
     from icons import lucide_extra, tema_extra
-    assert lucide_extra.SETS == {}
-    assert tema_extra.TEMA_GLYPHS == ()
+    for cat, glyphs in lucide_extra.SETS.items():
+        assert cat in CATEGORIAS, f"categoría local desconocida: {cat}"
+        for nombre, cuerpo in glyphs.items():
+            errs = R._test_glyph(nombre, cuerpo)
+            assert not errs, f"{cat}/{nombre}: {'; '.join(errs)}"
+    instalados = {n for s in CATEGORIAS.values() for n in s.GLYPHS}
+    for claves, glyph in tema_extra.TEMA_GLYPHS:
+        assert claves and glyph, "regla local incompleta"
+        assert glyph in instalados, f"regla sin glyph instalado: {glyph}"
 
 
 def test_get_icon_de_lucide_y_de_la_casa():
